@@ -1,0 +1,9 @@
+{
+	"auth": {
+		"myjournalappb00cf4c9": {
+			"service": "Cognito",
+			"providerPlugin": "awscloudformation",
+			"dependsOn": []
+		}
+	}
+}

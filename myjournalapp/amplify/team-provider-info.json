@@ -1,0 +1,19 @@
+{
+    "myjournal": {
+        "awscloudformation": {
+            "AuthRoleName": "myjournalapp-myjournal-20190715153235-authRole",
+            "UnauthRoleArn": "arn:aws:iam::185721370240:role/myjournalapp-myjournal-20190715153235-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::185721370240:role/myjournalapp-myjournal-20190715153235-authRole",
+            "Region": "ap-southeast-2",
+            "DeploymentBucketName": "myjournalapp-myjournal-20190715153235-deployment",
+            "UnauthRoleName": "myjournalapp-myjournal-20190715153235-unauthRole",
+            "StackName": "myjournalapp-myjournal-20190715153235",
+            "StackId": "arn:aws:cloudformation:ap-southeast-2:185721370240:stack/myjournalapp-myjournal-20190715153235/f36481a0-a6c1-11e9-8b23-0290a6e588aa"
+        },
+        "categories": {
+            "auth": {
+                "myjournalappb00cf4c9": {}
+            }
+        }
+    }
+}
