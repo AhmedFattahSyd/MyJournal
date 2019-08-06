@@ -10,9 +10,12 @@ import {
   CardContent,
   Icon,
   Typography,
-  CardActionArea
+  CardActionArea,
+  List,
+  ListItem,
+  ListItemText
 } from "@material-ui/core";
-import MpgGraph, { CreateOrUpdateModes } from "./MpgGraph";
+import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgCategory from "./MpgCategory";
@@ -32,20 +35,19 @@ interface IItemListProps extends RouteComponentProps {
   mpgLogger: MpgLogger;
   filteredItems: MpgItem[];
   currentItemId: string;
-  deskTop: boolean;
   allCategories: MpgCategory[];
-  createOrUpdateMode: CreateOrUpdateModes;
-  allTags: MpgItem[]
-  allEnteries: MpgItem[]
-  goToNewEntry: (
-    event: React.MouseEvent<HTMLSpanElement, MouseEvent>
-  ) => void
+  displayeMode: MpgDisplayMode;
+  allTags: MpgItem[];
+  allEnteries: MpgItem[];
+  goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
+  desktop: boolean;
 }
 interface IItemListState {
   currentCategoryId: string;
   currentCategoryName: string;
   filteredItems: MpgItem[];
   currentItemId: string;
+  desktop: boolean;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item List class
@@ -64,7 +66,8 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       currentCategoryId: props.currentCategoryId,
       currentCategoryName: categoryName,
       filteredItems: props.filteredItems,
-      currentItemId: props.currentItemId
+      currentItemId: props.currentItemId,
+      desktop: props.desktop
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,7 +76,8 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   public render = () => {
     return (
       <div>
-        {this.props.deskTop ? this.renderDesktop() : this.renderMobile()}
+        {/* {this.props.desktop ? this.renderDesktop() : this.renderMobile()} */}
+        {this.renderList()}
       </div>
     );
   };
@@ -92,6 +96,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          desktop={this.state.desktop}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -126,7 +131,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
               margin: 15
             }}
           >
-         <Typography variant="h6" color="primary" />
+            <Typography variant="h6" color="primary" />
             <Typography variant="h5" color="primary">
               {this.state.currentCategoryName + " list"}
             </Typography>
@@ -137,6 +142,61 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       </Card>
     );
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // render items OLD
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // renderItemsOLD = () => {
+  //   const cardWidth = 320;
+  //   return (
+  //     <div
+  //       style={{
+  //         display: "flex",
+  //         justifyContent: "space-around",
+  //         padding: "2px 5px 2px 5px",
+  //         flexWrap: "wrap"
+  //       }}
+  //     >
+  //       <List style={{ maxHeight: "100%", overflow: "auto" }}>
+  //         {this.state.filteredItems.map(item => (
+  //           <Card
+  //             key={item.getId()}
+  //             elevation={1}
+  //             style={{
+  //               maxWidth: cardWidth,
+  //               minWidth: cardWidth,
+  //               margin: "2px 5px 2px 5px"
+  //             }}
+  //           >
+  //             <CardActionArea
+  //               onClick={event => this.handleSelectItem(event, item.getId())}
+  //             >
+  //               <CardContent>
+  //                 <Typography
+  //                   style={{ fontSize: "14px", fontWeight: "bold" }}
+  //                   align="left"
+  //                 >
+  //                   {item.getName()}
+  //                 </Typography>
+  //                 {this.isCurrentItem(item.getId()) ? (
+  //                   <div
+  //                     style={{
+  //                       display: "flex",
+  //                       justifyContent: "space-between",
+  //                       paddingTop: "5px"
+  //                     }}
+  //                   />
+  //                 ) : (
+  //                   <div />
+  //                 )}
+  //               </CardContent>
+  //             </CardActionArea>
+  //             {/* </Link> */}
+  //           </Card>
+  //         ))}
+  //       </List>
+  //     </div>
+  //   );
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render items
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,62 +211,31 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
           flexWrap: "wrap"
         }}
       >
-        {this.state.filteredItems.map(item => (
-          <Card
-            key={item.getId()}
-            elevation={1}
-            style={{
-              maxWidth: cardWidth,
-              minWidth: cardWidth,
-              margin: "2px 5px 2px 5px"
-            }}
-          >
-            <CardActionArea
+        <List style={{ height: 800, width: 320, overflow: "auto" }}>
+          {this.state.filteredItems.map(item => (
+            <ListItem
+              key={item.getId()}
+              button
               onClick={event => this.handleSelectItem(event, item.getId())}
+              selected={this.isItemSelected(item.getId())}
             >
-              <CardContent>
-                <Typography
-                  style={{ fontSize: "14px", fontWeight: "bold" }}
-                  align="left"
-                >
-                  {item.getName()}
-                </Typography>
-                {this.isCurrentItem(item.getId()) ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingTop: "5px"
-                    }}
-                  >
-                    <Icon
-                      style={{ fontSize: "20px" }}
-                      onClick={event =>
-                        this.handleItemUpdate(event, item.getId())
-                      }
-                    >
-                      edit
-                    </Icon>
-                    <Icon
-                      style={{ fontSize: "20px" }}
-                      onClick={event =>
-                        this.handleItemDelete(event, item.getId())
-                      }
-                    >
-                      delete
-                    </Icon>
-                  </div>
-                ) : (
-                  <div />
-                )}
-              </CardContent>
-            </CardActionArea>
-            {/* </Link> */}
-          </Card>
-        ))}
+              <ListItemText primary={item.getName()} />
+            </ListItem>
+          ))}
+        </List>
       </div>
     );
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // isItemSelected
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isItemSelected = (id: string): boolean => {
+    let selected = false
+    if(id === this.state.currentItemId){
+      selected = true
+    }
+    return selected
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // check if this is the current item
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,17 +250,13 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // handle update icon clicked
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleItemUpdate = async (event: React.MouseEvent, itemId: string) => {
-    const itemType = this.props.mpgGraph.getItemType(itemId)
+    const itemType = this.props.mpgGraph.getItemType(itemId);
     // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
     if (itemType != undefined) {
-      await this.props.mpgGraph.setCreateOrUpdateMode(
-        CreateOrUpdateModes.Update
-      );
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
       await this.props.mpgGraph.setCurrentItemId(itemId);
       await this.goToItemDetails(itemType);
-      await this.props.mpgGraph.setCreateOrUpdateMode(
-        CreateOrUpdateModes.Update
-      );
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
       await this.props.mpgGraph.setCurrentItemId(itemId);
     } else {
       this.props.mpgLogger.unexpectedError(
@@ -244,15 +269,29 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // delete and embed where it's called
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToItemDetails = async (itemType: string) => {
-    if(!this.props.deskTop){
+    if (!this.props.desktop) {
       await this.props.history.push("/ItemDetails");
     }
-  }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle select item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleSelectItem = async (event: React.MouseEvent, id: string) => {
-    await this.props.mpgGraph.setCurrentItemId(id);
+  handleSelectItem = async (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    itemId: string
+  ) => {
+    const itemType = this.props.mpgGraph.getItemType(itemId);
+    // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
+    if (itemType != undefined) {
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.View);
+      await this.props.mpgGraph.setCurrentItemId(itemId);
+      // await this.goToItemDetails(itemType);
+      await this.props.mpgGraph.setCurrentItemId(itemId);
+    } else {
+      this.props.mpgLogger.unexpectedError(
+        "ItemList: handleItemUpdate: undefine item type"
+      );
+    }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle delete icon clicked
@@ -276,49 +315,27 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       currentCategoryName = currentCategory.getName();
     }
     this.setState({ currentCategoryName: currentCategoryName });
-  }
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // handle new item
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleNewItemOLD = async () => {
-    const currentCategory = this.props.mpgGraph.getCategoryById(this.state.currentCategoryId)
-    await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-    if (currentCategory != undefined) {
-      await this.goToItemDetails(currentCategory.getName())
-      await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-      // this.props.mpgLogger.debug(`MpgItemList: handleNewItem: current category:${currentCategory.getName()}`)
-      // switch (currentCategory.getName()) {
-      //   // case 'Project':{
-      //   //   await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-      //   //   await this.props.history.push('/projectDetails')
-      //   //   await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-      //   // }
-      //   // break
-      //   default: {
-      //     await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-      //     await this.props.history.push('/ItemDetails')
-      //     await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
-      //   }
-      // }
-    } else {
-      this.props.mpgLogger.unexpectedError(`MpgItemList: handleNewItem: category is undefined. categoryId:${this.state.currentCategoryId}`)
-    }
-
-  }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle new item
   // needs tidying up
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleNewItem = async () => {
-    const currentCategory = this.props.mpgGraph.getCategoryById(this.state.currentCategoryId)
-    await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
+    const currentCategory = this.props.mpgGraph.getCategoryById(
+      this.state.currentCategoryId
+    );
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
     if (currentCategory != undefined) {
-      await this.goToItemDetails(currentCategory.getName())
-      await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create)
+      await this.goToItemDetails(currentCategory.getName());
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
     } else {
-      this.props.mpgLogger.unexpectedError(`MpgItemList: handleNewItem: category is undefined. categoryId:${this.state.currentCategoryId}`)
+      this.props.mpgLogger.unexpectedError(
+        `MpgItemList: handleNewItem: category is undefined. categoryId:${
+          this.state.currentCategoryId
+        }`
+      );
     }
-  }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
   ///////////////////////////////////////////////////////////////////////////////////////////////

@@ -7,16 +7,18 @@ import MpgCategory from './MpgCategory';
 import { MpgError } from './MpgError';
 import { MpgDataClasses, MpgRelNames } from './MpgDataClasses';
 import { MpgItemRecord as MpgDataRecord} from './MpgDataDef';
-import { MpgInitialCategories, MpgCategoryNames } from './MpgInitialCategories';
+import { MpgInitialCategories, MpgCategoryType } from './MpgInitialCategories';
 import { MpgDataProxy, MpgDataMode } from './MpgDataProxy';
 import MpgItem from './MpgItem';
 import MpgRel from './MpgRel';
 ///////////////////////////////////////////////////////////////////////////////////////////////
-// Create or update mode 
+// display mode mode 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-export enum CreateOrUpdateModes {
-    Create = 'CREATE',
-    Update = 'UPDATE'
+export enum MpgDisplayMode {
+    View = 'View',
+    Create = 'Create',
+    Update = 'Update',
+    List = 'List'
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgGraph class
@@ -35,7 +37,7 @@ export default class MpgGraph {
     private GraphFormatVersion = '2'
     private userDataTableExists = false
     private allItems: MpgItem[] = []
-    private createOrUpdateMode: CreateOrUpdateModes = CreateOrUpdateModes.Create
+    private viewCreateUpdateMode: MpgDisplayMode = MpgDisplayMode.List
     private currentItemId = ''
     private filteredAllItems: MpgItem[] = []
     private currentCategoryId: string = ''
@@ -56,16 +58,36 @@ export default class MpgGraph {
     // check user's table and if empty populate with builtin objects
     ///////////////////////////////////////////////////////////////////////////////////////////////
     public init = async (userName: string) => {
-        this.allCategories = []
-        this.userName = userName
-        this.mpgDataProxy.setTableName(userName)
-        await this.checkIfTableEmptyAndInit()
+        try{
+            this.allCategories = []
+            this.userName = userName
+            this.mpgDataProxy.setTableName(userName)
+            await this.checkIfTableEmptyAndInit()
+            this.currentCategoryId = this.allCategories[0].getId()
+        } catch (err) {
+            this.error = new MpgError("MpgGraph: init:" + (err as Error).message)
+            this.unexpectedError = true
+        }
+    
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // getMpguser
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     public getMpguser = (): MpgUser => {
         return this.mpgUser
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // get view category id
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    public getViewCategoryId = (): string | undefined => {
+        let viewCategoryId = undefined
+        for (let category of this.allCategories) {
+            if (category.getName() == MpgCategoryType.View) {
+                viewCategoryId = category.getId()
+                break
+            }
+        }
+        return viewCategoryId
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // invoke data refreshed function
@@ -79,7 +101,8 @@ export default class MpgGraph {
             this.filteredAllItems,
             this.currentCategoryId,
             this.currentItemId,
-            this.createOrUpdateMode,
+            this.viewCreateUpdateMode,
+            this.allTags,
         )
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,7 +217,7 @@ export default class MpgGraph {
     public getTagCategoryId = (): string | undefined => {
         let tagCategoryId = undefined
         for (let category of this.allCategories) {
-            if (category.getName() == MpgCategoryNames.Tag) {
+            if (category.getName() == MpgCategoryType.Tag) {
                 tagCategoryId = category.getId()
                 break
             }
@@ -288,8 +311,8 @@ export default class MpgGraph {
                 this.setFilteredAllItems()
                 // we will set this a the current item to cope with the crreation 'on the fly' situation
                 this.currentItemId = item.getId()
-                this.mpgLogger.debug(`MpgGraph: createItem`,` current item id:`,this.currentItemId)
-                this.createOrUpdateMode = CreateOrUpdateModes.Update
+                // this.mpgLogger.debug(`MpgGraph: createItem`,` current item id:`,this.currentItemId)
+                this.viewCreateUpdateMode = MpgDisplayMode.Update
             } else {
                 throw new MpgError("MpgGraph: createItem: category is undefined")
             }
@@ -397,7 +420,7 @@ export default class MpgGraph {
     public getEntryCategoryId = (): string | undefined => {
         let actionCategoryId = undefined
         for (let category of this.allCategories) {
-            if (category.getName() == MpgCategoryNames.Entry) {
+            if (category.getName() == MpgCategoryType.Entry) {
                 actionCategoryId = category.getId()
                 break
             }
@@ -503,9 +526,9 @@ export default class MpgGraph {
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // set create or update mode
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    setCreateOrUpdateMode = async (mode: CreateOrUpdateModes) => {
+    setDisplayMode = async (mode: MpgDisplayMode) => {
         //  this.mpgLogger.debug("MpgGraph: setCategoryId:")
-        this.createOrUpdateMode = mode
+        this.viewCreateUpdateMode = mode
         await this.invokeDataRefreshedFun()
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -642,19 +665,6 @@ export default class MpgGraph {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     getCurrentCategoryId = (): string =>{
         return this.currentCategoryId
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    // get view category id
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    public getViewCategoryId = (): string | undefined => {
-        let viewCategoryId = undefined
-        for (let category of this.allCategories) {
-            if (category.getName() == MpgCategoryNames.View) {
-                viewCategoryId = category.getId()
-                break
-            }
-        }
-        return viewCategoryId
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // load records into objects    

@@ -23,7 +23,7 @@ export class MpgDataProxy {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     constructor (logger: MpgLogger, dataMode: MpgDataMode = MpgDataMode.Remote){
         this.mpgLogger = logger
-        if(dataMode == MpgDataMode.Local){
+        if(dataMode === MpgDataMode.Local){
             this.mpgClientData = new MpgLocalData(this.mpgLogger)
         }else{
             this.mpgClientData = new MpgRemoteData(this.mpgLogger)

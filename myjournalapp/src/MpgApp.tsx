@@ -2,13 +2,12 @@
 // MpgApp module
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 import React from "react";
-import MpgAppBar from "./MpgAppBar";
 import MpgLanding from "./MpgLanding";
 import { Route, Redirect, RouteComponentProps, withRouter } from "react-router";
 import MpgSignup from "./MpgSignup";
 import MpgHome from "./MpgHome";
 import MpgSignin from "./MpgSignin";
-import MpgGraph, { CreateOrUpdateModes } from "./MpgGraph";
+import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgConfirmSignup from "./MpgConfirmSignup";
 import MpgLogger, { MpgLoggingMode } from "./MpgLogger";
 import { MpgError } from "./MpgError";
@@ -26,13 +25,17 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Icon
+  Icon,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  TextField,
+  DialogActions
 } from "@material-ui/core";
 import MpgItem from "./MpgItem";
-import MpgItemList from "./MpgItemList";
-import MpgItemDetails from "./MpgItemDetails";
 import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
+import { flexbox } from "@material-ui/system";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,14 +50,15 @@ interface IMpgAppState {
   message: string;
   messageWaitTime: number;
   sidebarVisible: boolean;
-  desktop: boolean
+  desktop: boolean;
+  testDialogOpen: boolean;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg App class
 // this is the main controller of the UI
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
-  private desktopMinScreenWidth = 1200;
+  private desktopMinScreenWidth = 1000;
   private mpgGraph: MpgGraph;
   private mpgLogger: MpgLogger;
   private mpgUser: MpgUser;
@@ -63,9 +67,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private filteredItems: MpgItem[] = [];
   private currentCategoryId: string = "";
   private currentItemId: string = ""; // item being displayed or edited
-  private createOrUpdateMode: CreateOrUpdateModes = CreateOrUpdateModes.Create;
+  private displayMode: MpgDisplayMode = MpgDisplayMode.List;
   private allTags: MpgItem[] = [];
-  private allEnteries: MpgItem[] = []
+  private allEnteries: MpgItem[] = [];
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +83,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       this.dataRefreshed
     );
     this.mpgUser = this.mpgGraph.getMpguser(); // should we keep user here or get it when we want it from graph
-    let desktop = true
+    let desktop = true;
     window.innerWidth > this.desktopMinScreenWidth
       ? (desktop = true)
       : (desktop = false);
@@ -93,7 +97,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       message: " ",
       messageWaitTime: 6000,
       sidebarVisible: false,
-      desktop: desktop
+      desktop: desktop,
+      testDialogOpen: false
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +121,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       <div>
         {this.renderMessage()}
         {this.renderDrawer()}
+        {this.renderTestDialog()}
         <Route
           path="/Home"
           render={props => (
@@ -127,18 +133,19 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               mpgGraph={this.mpgGraph}
               mpgLogger={this.mpgLogger}
               allCategories={this.allCategories}
-              deskTop={this.state.desktop}
+              desktop={this.state.desktop}
               filteredItems={this.filteredItems}
               currentItemId={this.currentItemId}
               currentCategoryId={this.currentCategoryId}
-              createOrUpdateMode={this.createOrUpdateMode}
+              createOrUpdateMode={this.displayMode}
               allTags={this.allTags}
               allEnteries={this.allEnteries}
               goToNewEntry={this.goToNewEntry}
+              displayMode={this.displayMode}
             />
           )}
         />
-        <Route
+        {/* <Route
           path="/ItemList"
           render={props => (
             <MpgItemList
@@ -151,16 +158,16 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               mpgLogger={this.mpgLogger}
               filteredItems={this.filteredItems}
               currentItemId={this.currentItemId}
-              deskTop={this.state.desktop}
+              desktop={this.state.desktop}
               allCategories={this.allCategories}
-              createOrUpdateMode={this.createOrUpdateMode}
+              ViewCreateUpdateMode={this.createOrUpdateMode}
               allTags={this.allTags}
               allEnteries={this.allEnteries}
               goToNewEntry={this.goToNewEntry}
             />
           )}
-        />
-        <Route
+        /> */}
+        {/* <Route
           path="/ItemDetails"
           render={props => (
             <MpgItemDetails
@@ -175,13 +182,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               currentItemId={this.currentItemId}
               allTags={this.allTags}
               allEnteries={this.allEnteries}
-              deskTop={this.state.desktop}
+              desktop={this.state.desktop}
               filteredItems={this.filteredItems}
               allCategories={this.allCategories}
               goToNewEntry={this.goToNewEntry}
             />
           )}
-        />
+        /> */}
         <Route
           path="/Landing"
           render={props => (
@@ -189,6 +196,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               {...props}
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               goToNewEntry={this.goToNewEntry}
+              desktop={this.state.desktop}
             />
           )}
         />
@@ -200,6 +208,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               mpgGraph={this.mpgGraph}
               goToNewEntry={this.goToNewEntry}
+              desktop={this.state.desktop}
             />
           )}
         />
@@ -211,6 +220,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               mpgGraph={this.mpgGraph}
               goToNewEntry={this.goToNewEntry}
+              desktop={this.state.desktop}
             />
           )}
         />
@@ -224,6 +234,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               setUserState={this.setUserState}
               mpgUser={this.mpgUser}
               goToNewEntry={this.goToNewEntry}
+              desktop={this.state.desktop}
             />
           )}
         />
@@ -241,6 +252,56 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       </div>
     );
   }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // test dialog
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderTestDialog = () => {
+    return (
+      <div>
+        <dialog
+          open={this.state.testDialogOpen}
+          aria-labelledby="testDialog"
+          style={{ backgroundColor: "grey" }}
+        >
+          <DialogTitle id="testDialog">Test Dialog</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              To subscribe to this website, please enter your email address
+              here. We will send updates occasionally.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              label="Email Address"
+              type="email"
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleTestDialogClose} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={this.handleTestDialogClose} color="primary">
+              Subscribe
+            </Button>
+          </DialogActions>
+        </dialog>
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handleTestDialogClose
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  handleTestDialogClose = () => {
+    this.setState({ testDialogOpen: false });
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // openTestDialog
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  openTestDialog = () => {
+    this.setState({ testDialogOpen: true });
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // message
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -304,7 +365,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // event handlers
   ///////////////////////////////////////////////////////////////////////////////////////////////
   toggleDrawer = (side: any, open: boolean) => () => {
-    if (side == "") {
+    if (side === "") {
       side = "";
     }
     this.setState({
@@ -315,13 +376,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Views
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToViews = async () => {
+    this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     const viewCategoryId = this.mpgGraph.getViewCategoryId();
-    if (viewCategoryId != undefined) {
+    if (viewCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/ItemList");
+        this.props.history.push("/Home");
       }
-      await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
     } else {
       this.handleFatalAppError(
         "Unexpected error",
@@ -353,7 +414,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
-            <ListItemText primary="Items" />
+            <ListItemText primary="Entries" />
           </ListItem>
           <ListItem button onClick={this.goToTags}>
             <ListItemIcon>
@@ -401,12 +462,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   goToNewEntry = async () => {
     this.showMessage("New entry ...");
     const entryCategoryId = this.mpgGraph.getEntryCategoryId();
-    if (entryCategoryId != undefined) {
+    if (entryCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-      await this.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Create);
-      if (!this.state.desktop) {
-        await this.props.history.push("/ItemDetails");
-      }
+      await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+      // if (!this.state.desktop) {
+      //   await this.props.history.push("/Home");
+      // }
     } else {
       this.mpgLogger.unexpectedError(
         `MpgApp: goToEntry: entry category id is undefeined`
@@ -417,11 +478,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToTags = async () => {
+    await this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     const tagCategoryId = this.mpgGraph.getTagCategoryId();
-    if (tagCategoryId != undefined) {
+    if (tagCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/ItemList");
+        this.props.history.push("/Home");
       }
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
     } else {
@@ -435,11 +497,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToEntries = async () => {
+    await this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     const actionCategoryId = this.mpgGraph.getEntryCategoryId();
-    if (actionCategoryId != undefined) {
+    if (actionCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(actionCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/ItemList");
+        this.props.history.push("/Home");
       }
       await this.mpgGraph.setCurrentCategoryId(actionCategoryId);
     } else {
@@ -542,7 +605,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     filteredAllItems: MpgItem[],
     currentCategoryId: string,
     currentItemId: string,
-    createOrUpdateMode: CreateOrUpdateModes,
+    displayMode: MpgDisplayMode,
+    allTags: MpgItem[]
   ) => {
     // this.mpgLogger.debug(
     //   "MpgApp: dataRefreshed: allCatagories:",
@@ -551,8 +615,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     this.allCategories = allCategories;
     this.filteredItems = filteredAllItems;
     this.currentCategoryId = currentCategoryId;
-    this.currentItemId = currentItemId
-    this.createOrUpdateMode = createOrUpdateMode
+    this.currentItemId = currentItemId;
+    this.displayMode = displayMode;
+    this.allTags = allTags;
     // set state for variables that affect rendering of this component
     await this.setState({
       appError: error,
@@ -580,33 +645,47 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       ? this.setState({ sidebarVisible: false })
       : this.setState({ sidebarVisible: true });
     // console.log("Toggling sidebar visiblity. sidebarVisible:", this.state.sidebarVisible);
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  componentWillMount = () =>{
-    this.updateSize()
-  }
+  componentWillMount = () => {
+    this.updateSize();
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // update desktop setting
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   updateSize = () => {
     window.innerWidth > this.desktopMinScreenWidth
-    ? (this.setState({desktop: true}))
-    : (this.setState({desktop: false}));
-  }
+      ? this.setState({ desktop: true })
+      : this.setState({ desktop: false });
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component did mount
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   componentDidMount = () => {
     window.addEventListener("resize", this.updateSize);
-  }
+    // window.addEventListener("keyup", e => this.handleKeyPressed(e));
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component will unmount
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   componentWillUnmount = () => {
     window.removeEventListener("resize", this.updateSize);
-  }
+    // window.removeEventListener("keypressed", e => this.handleKeyPressed(e));
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handle keyup
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  handleKeyPressed = (event: any) => {
+    // console.log('key up: event',event);
+    // if (event.key === "i") {
+    //   this.goToNewEntry();
+    // }
+    // if (event.key === "t") {
+    //   this.openTestDialog();
+    // }
+  };
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // export

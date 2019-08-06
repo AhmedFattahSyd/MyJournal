@@ -24,6 +24,7 @@ interface ISignupProps extends RouteComponentProps {
   ) => void;
   mpgGraph: MpgGraph;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
+  desktop: boolean
 }
 interface ISignupState {
   userName: string;
@@ -59,6 +60,7 @@ class MpgSignupBase extends React.Component<ISignupProps, ISignupState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          desktop={this.props.desktop}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

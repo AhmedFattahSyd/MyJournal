@@ -51,11 +51,11 @@ export class MpgRemoteData {
             const response = await lambda.invoke(pullParams).promise()
             // check status code
             const statusCode = response.StatusCode
-            if(statusCode == 200){
+            if(statusCode === 200){
                 // success from lambda
                 // check dynamodb errors
                 const mpgDataResponse = JSON.parse(response.Payload as string) as MpgData.IMpgDataServerResponse
-                if (mpgDataResponse.returnCode == MpgData.MpgDataServerReturnCode.Success) {
+                if (mpgDataResponse.returnCode === MpgData.MpgDataServerReturnCode.Success) {
                     // this.mpgLogger.debug("MpgClientData: createItemRecord: item was careated successfully: mpgDataResponse:",
                     // mpgDataResponse)
                     // success from mpg data server\
@@ -102,11 +102,11 @@ export class MpgRemoteData {
             let lambdaesponse = await lambda.invoke(pullParams).promise()
             // check lambda status code
             const statusCode = lambdaesponse.StatusCode
-            if(statusCode == 200){
+            if(statusCode === 200){
                 // success from lambda
                 // check ddb response
                 const mpgDataResponse = JSON.parse(lambdaesponse.Payload as string) as MpgData.IMpgDataServerResponse
-                if (mpgDataResponse.returnCode == MpgData.MpgDataServerReturnCode.Success) {
+                if (mpgDataResponse.returnCode === MpgData.MpgDataServerReturnCode.Success) {
                     // success from mpg data server
                     // parse items
                     const itemData = mpgDataResponse.data
@@ -154,11 +154,11 @@ export class MpgRemoteData {
             };
             const response = await lambda.invoke(pullParams).promise()
             const statusCode = response.StatusCode
-            if(statusCode == 200){
+            if(statusCode === 200){
                 // success from lambda
                 // check dynamodb errors
                 const mpgDataResponse = JSON.parse(response.Payload as string) as MpgData.IMpgDataServerResponse
-                if (mpgDataResponse.returnCode == MpgData.MpgDataServerReturnCode.Success) {
+                if (mpgDataResponse.returnCode === MpgData.MpgDataServerReturnCode.Success) {
                     // success from mpg data server\
                     // do nothing
                 }else{
@@ -197,12 +197,12 @@ export class MpgRemoteData {
                 };
                 const response = await lambda.invoke(pullParams).promise()
                 const statusCode = response.StatusCode
-                if(statusCode == 200){
+                if(statusCode === 200){
                     // success from lambda
                     // check dynamodb errors
                     const mpgDataResponse = JSON.parse(response.Payload as string) as MpgData.IMpgDataServerResponse
                     // this.mpgLogger.debug(`MpgRemoteData: update item: mpgDataResponse: ${mpgDataResponse}`)
-                    if (mpgDataResponse.returnCode == MpgData.MpgDataServerReturnCode.Success) {
+                    if (mpgDataResponse.returnCode === MpgData.MpgDataServerReturnCode.Success) {
                         // success from mpg data server\
                         // do nothing
                     }else{

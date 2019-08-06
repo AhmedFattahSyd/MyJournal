@@ -20,7 +20,7 @@ export default class MpgRootItem {
     // constructor
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     protected constructor (type: MpgDataClasses, name: string,importance: number = 0, id: string = '') {
-        if(id.trim() == ''){
+        if(id.trim() === ''){
             this.id = uuid()
         }else{
             this.id = id
