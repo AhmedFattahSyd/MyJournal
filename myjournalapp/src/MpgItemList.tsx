@@ -36,11 +36,12 @@ interface IItemListProps extends RouteComponentProps {
   filteredItems: MpgItem[];
   currentItemId: string;
   allCategories: MpgCategory[];
-  displayeMode: MpgDisplayMode;
+  displayMode: MpgDisplayMode;
   allTags: MpgItem[];
   allEnteries: MpgItem[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   desktop: boolean;
+  primaryColor: string;
 }
 interface IItemListState {
   currentCategoryId: string;
@@ -76,10 +77,31 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   public render = () => {
     return (
       <div>
-        {/* {this.props.desktop ? this.renderDesktop() : this.renderMobile()} */}
-        {this.renderList()}
+        <MpgAppBar
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          goToNewEntry={this.props.goToNewEntry}
+          desktop={this.props.desktop}
+        />
+        <div style={{ paddingTop: 59 }}> </div>
+        <div
+          style={{
+            padding: "10px",
+            display: "flex",
+            justifyContent: "space-around",
+            flexWrap: "wrap",
+            textAlign: "center"
+          }}
+        >
+          {this.renderList()}
+        </div>
       </div>
     );
+    // return (
+    //   <div>
+    //     {/* {this.props.desktop ? this.renderDesktop() : this.renderMobile()} */}
+    //     {this.renderList()}
+    //   </div>
+    // );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // renderDesktop
@@ -143,61 +165,6 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render items OLD
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // renderItemsOLD = () => {
-  //   const cardWidth = 320;
-  //   return (
-  //     <div
-  //       style={{
-  //         display: "flex",
-  //         justifyContent: "space-around",
-  //         padding: "2px 5px 2px 5px",
-  //         flexWrap: "wrap"
-  //       }}
-  //     >
-  //       <List style={{ maxHeight: "100%", overflow: "auto" }}>
-  //         {this.state.filteredItems.map(item => (
-  //           <Card
-  //             key={item.getId()}
-  //             elevation={1}
-  //             style={{
-  //               maxWidth: cardWidth,
-  //               minWidth: cardWidth,
-  //               margin: "2px 5px 2px 5px"
-  //             }}
-  //           >
-  //             <CardActionArea
-  //               onClick={event => this.handleSelectItem(event, item.getId())}
-  //             >
-  //               <CardContent>
-  //                 <Typography
-  //                   style={{ fontSize: "14px", fontWeight: "bold" }}
-  //                   align="left"
-  //                 >
-  //                   {item.getName()}
-  //                 </Typography>
-  //                 {this.isCurrentItem(item.getId()) ? (
-  //                   <div
-  //                     style={{
-  //                       display: "flex",
-  //                       justifyContent: "space-between",
-  //                       paddingTop: "5px"
-  //                     }}
-  //                   />
-  //                 ) : (
-  //                   <div />
-  //                 )}
-  //               </CardContent>
-  //             </CardActionArea>
-  //             {/* </Link> */}
-  //           </Card>
-  //         ))}
-  //       </List>
-  //     </div>
-  //   );
-  // };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
   // render items
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderItems = () => {
@@ -211,31 +178,111 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
           flexWrap: "wrap"
         }}
       >
-        <List style={{ height: 800, width: 320, overflow: "auto" }}>
+        <List style={{ maxHeight: "100%", overflow: "auto" }}>
           {this.state.filteredItems.map(item => (
-            <ListItem
+            <Card
               key={item.getId()}
-              button
-              onClick={event => this.handleSelectItem(event, item.getId())}
-              selected={this.isItemSelected(item.getId())}
+              elevation={1}
+              style={{
+                maxWidth: cardWidth,
+                minWidth: cardWidth,
+                margin: "2px 5px 2px 5px"
+              }}
             >
-              <ListItemText primary={item.getName()} />
-            </ListItem>
+              <CardActionArea
+                // onClick={event => this.handleSelectItem(event, item.getId())}
+              >
+                <CardContent>
+                  <Typography
+                    style={{ fontSize: "14px", fontWeight: "bold" }}
+                    align="left"
+                  >
+                    {item.getName()}
+                  </Typography>
+                  <Typography
+                    style={{ fontSize: "10px" }}
+                    align="left"
+                  >
+                    Priority: {item.getNetPriority()} ({item.getPriority()})
+                  </Typography>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      paddingTop: "5px"
+                    }}
+                  >
+                    <Icon
+                      style={{ fontSize: "20px" }}
+                      onClick={event =>
+                        this.handleItemUpdate(event, item.getId())
+                      }
+                    >
+                      edit
+                    </Icon>
+                    <Icon
+                      style={{ fontSize: "20px" }}
+                      onClick={event =>
+                        this.handleItemDelete(event, item.getId())
+                      }
+                    >
+                      delete
+                    </Icon>
+                  </div>
+                </CardContent>
+              </CardActionArea>
+              {/* </Link> */}
+            </Card>
           ))}
         </List>
       </div>
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // goback
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goBack = () => {
+    this.props.history.goBack();
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // render items
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // renderItems = () => {
+  //   const cardWidth = 320;
+  //   return (
+  //     <div
+  //       style={{
+  //         display: "flex",
+  //         justifyContent: "space-around",
+  //         padding: "2px 5px 2px 5px",
+  //         flexWrap: "wrap"
+  //       }}
+  //     >
+  //       <List style={{ height: 800, width: 320, overflow: "auto" }}>
+  //         {this.state.filteredItems.map(item => (
+  //           <ListItem
+  //             key={item.getId()}
+  //             button
+  //             onClick={event => this.handleSelectItem(event, item.getId())}
+  //             selected={this.isItemSelected(item.getId())}
+  //           >
+  //             <ListItemText primary={item.getName()} />
+  //           </ListItem>
+  //         ))}
+  //       </List>
+  //     </div>
+  //   );
+  // };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // isItemSelected
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   isItemSelected = (id: string): boolean => {
-    let selected = false
-    if(id === this.state.currentItemId){
-      selected = true
+    let selected = false;
+    if (id === this.state.currentItemId) {
+      selected = true;
     }
-    return selected
-  }
+    return selected;
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // check if this is the current item
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,24 +316,21 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // delete and embed where it's called
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToItemDetails = async (itemType: string) => {
-    if (!this.props.desktop) {
-      await this.props.history.push("/ItemDetails");
-    }
+    await this.props.history.push("/ItemDetails");
+    // if (!this.props.desktop) {
+    //   await this.props.history.push("/ItemDetails");
+    // }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle select item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleSelectItem = async (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
-    itemId: string
-  ) => {
+  handleSelectItem = async (event: React.MouseEvent, itemId: string) => {
     const itemType = this.props.mpgGraph.getItemType(itemId);
     // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
     if (itemType != undefined) {
-      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.View);
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
       await this.props.mpgGraph.setCurrentItemId(itemId);
-      // await this.goToItemDetails(itemType);
-      await this.props.mpgGraph.setCurrentItemId(itemId);
+      await this.goToItemDetails(itemType);
     } else {
       this.props.mpgLogger.unexpectedError(
         "ItemList: handleItemUpdate: undefine item type"

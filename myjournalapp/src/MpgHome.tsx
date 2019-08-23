@@ -38,6 +38,7 @@ interface IHomeProps extends RouteComponentProps {
   allEnteries: MpgItem[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   displayMode: MpgDisplayMode;
+  primaryColor: string
 }
 interface IHomeState {
   allCategories: MpgCategory[];
@@ -71,9 +72,30 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   public render = () => {
     return (
       <div>
-        {this.props.desktop ? this.renderDesktop() : this.renderMobile()}
+        <MpgAppBar
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          goToNewEntry={this.props.goToNewEntry}
+          desktop={this.props.desktop}
+        />
+        <div style={{ paddingTop: 59 }}> </div>
+        <div
+          style={{
+            padding: "10px",
+            display: "flex",
+            justifyContent: "space-around",
+            flexWrap: "wrap",
+            textAlign: "center"
+          }}
+        >
+          {this.renderCategories()}
+        </div>
       </div>
     );
+    // return (
+    //   <div>
+    //     {this.props.desktop ? this.renderDesktop() : this.renderMobile()}
+    //   </div>
+    // );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render mobile
@@ -92,9 +114,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
             textAlign: "center"
           }}
         >
-          {this.state.displayMode == MpgDisplayMode.List
-            ? this.renderItemList()
-            : this.renderItemDetails()}
+          {this.renderCategories()}
         </div>
       </div>
     );
@@ -109,7 +129,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   public renderDesktop = () => {
     // this.props.mpgLogger.debug(`MpgHome: renderDesktop: state`, this.state);
     return (
-      <div style={{backgroundColor:'lightgrey'}}>
+      <div style={{ backgroundColor: "lightgrey" }}>
         {this.isCurrentItemValid() ||
         this.state.displayMode == MpgDisplayMode.Create
           ? this.renderListAndViewDesktop()
@@ -134,8 +154,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
             textAlign: "center"
           }}
         >
-          {this.renderItemList()}
-          {this.renderItemDetails()}
+          {/* {this.renderItemList()}
+          {this.renderItemDetails()} */}
         </div>
       </div>
     );
@@ -157,7 +177,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
             textAlign: "center"
           }}
         >
-          {this.renderItemList()}
+          {/* {this.renderItemList()} */}
         </div>
       </div>
     );
@@ -189,37 +209,38 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
         displayMode={this.props.createOrUpdateMode}
         currentItemId={this.props.currentItemId}
         allTags={this.props.allTags}
-        allEnteries={this.props.allEnteries}
+        allEntries={this.props.allEnteries}
         desktop={this.props.desktop}
         filteredItems={this.props.filteredItems}
         allCategories={this.props.allCategories}
         goToNewEntry={this.props.goToNewEntry}
+        primaryColor={this.props.primaryColor}
       />
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render itemList
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderItemList = () => {
-    return (
-      <MpgItemList
-        toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-        showMessage={this.props.showMessage}
-        userSignedIn={this.props.userSignedIn}
-        currentCategoryId={this.props.currentCategoryId}
-        mpgGraph={this.props.mpgGraph}
-        mpgLogger={this.props.mpgLogger}
-        filteredItems={this.props.filteredItems}
-        currentItemId={this.props.currentItemId}
-        desktop={this.props.desktop}
-        allCategories={this.props.allCategories}
-        displayeMode={this.props.createOrUpdateMode}
-        allTags={this.props.allTags}
-        allEnteries={this.props.allEnteries}
-        goToNewEntry={this.props.goToNewEntry}
-      />
-    );
-  };
+  // renderItemList = () => {
+  //   return (
+  //     <MpgItemList
+  //       toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+  //       showMessage={this.props.showMessage}
+  //       userSignedIn={this.props.userSignedIn}
+  //       currentCategoryId={this.props.currentCategoryId}
+  //       mpgGraph={this.props.mpgGraph}
+  //       mpgLogger={this.props.mpgLogger}
+  //       filteredItems={this.props.filteredItems}
+  //       currentItemId={this.props.currentItemId}
+  //       desktop={this.props.desktop}
+  //       allCategories={this.props.allCategories}
+  //       displayMode={this.props.createOrUpdateMode}
+  //       allTags={this.props.allTags}
+  //       allEnteries={this.props.allEnteries}
+  //       goToNewEntry={this.props.goToNewEntry}
+  //     />
+  //   );
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render AppBar
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,9 +324,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleCategoryCardClicked = async (event: React.MouseEvent, id: string) => {
     await this.props.mpgGraph.setCurrentCategoryId(id);
-    if (!this.props.desktop) {
-      this.props.history.push("/ItemList");
-    }
+    this.props.history.push("/ItemList");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount

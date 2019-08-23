@@ -16,7 +16,10 @@ import {
   ListItemText,
   Chip,
   Divider,
-  CardActionArea
+  CardActionArea,
+  Button,
+  Tooltip,
+  IconButton
 } from "@material-ui/core";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
@@ -25,6 +28,8 @@ import { MpgCategoryType } from "./MpgInitialCategories";
 import MpgHome from "./MpgHome";
 import MpgCategory from "./MpgCategory";
 import MpgItemList from "./MpgItemList";
+import DeleteIcon from "@material-ui/icons/Delete";
+import { flexbox } from "@material-ui/system";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,39 +45,43 @@ interface IItemDetailsProps extends RouteComponentProps {
   mpgLogger: MpgLogger;
   currentItemId: string;
   allTags: MpgItem[];
-  allEnteries: MpgItem[];
+  allEntries: MpgItem[];
   filteredItems: MpgItem[];
   allCategories: MpgCategory[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   desktop: boolean;
+  primaryColor: string;
 }
 interface IItemDetailsState {
   currentCategoryId: string;
-  currentCategoryName: string;
+  // currentCategoryName: string;
   displayMode: MpgDisplayMode;
   itemName: string;
   currentItemId: string;
-  itemImportance: number;
+  itemPriority: number;
+  itemNetPriority: number;
   tagSearchText: string;
-  actionSearchText: string;
+  entrySearchText: string;
   tagListVisible: boolean;
-  actionListVisible: boolean;
+  entryListVisible: boolean;
   allTags: MpgItem[];
   matchedTags: MpgItem[];
-  selectedTags: MpgItem[];
+  existingTags: MpgItem[];
+  existingParentTags: MpgItem[];
   allGoals: MpgItem[];
   goalSearchText: string;
   goalListVisible: boolean;
   matchedGoals: MpgItem[];
   selectedGoals: MpgItem[];
   itemsWithTags: MpgItem[];
-  allActions: MpgItem[];
-  selectedActions: MpgItem[];
-  matchedActions: MpgItem[];
+  allEntries: MpgItem[];
+  selectedEntries: MpgItem[];
+  matchedEntries: MpgItem[];
   showRelatedItems: boolean;
   itemDataChanged: boolean;
   desktop: boolean;
   screenTitle: string;
+  deleteInProgress: boolean;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item Details class
@@ -82,52 +91,62 @@ class MpgItemDetailsBase extends React.Component<
   IItemDetailsState
 > {
   readonly addNewTagId = "ADD_NEW_TAG_ID";
-  readonly addNewGoalId = "ADD_NEW_GOAL_ID";
-  readonly addNewActionId = "ADD_NEW_ACTION_ID";
-  private nameInput: any;
+  // readonly addNewGoalId = "ADD_NEW_GOAL_ID";
+  readonly addNewEntryId = "ADD_NEW_ENTRY_ID";
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
   constructor(props: IItemDetailsProps) {
     super(props);
     const item = this.props.mpgGraph.getItemById(props.currentItemId);
-    let itemImportance = 0;
+    let itemPriority = 0;
+    let itemName = "";
+    let screenName = "New " + props.mpgGraph.getCyrrentCateoryName();
+    let existingTags: MpgItem[] = [];
+    let entriesWithTags: MpgItem[] = [];
+    let existingParentTags: MpgItem[] = [];
+    let itemNetPriority = 0;
     if (item != undefined) {
-      itemImportance = item.getImportance();
+      entriesWithTags = [];
+      itemPriority = item.getPriority();
+      itemNetPriority = item.getNetPriority();
+      itemName = item.getName();
+      itemPriority = item.getPriority();
+      existingTags = item.getTags();
+      screenName = "Update " + props.mpgGraph.getCyrrentCateoryName();
+      if (props.mpgGraph.isCurrentCategoryTag()) {
+        existingParentTags = item.getParents();
+      }
     }
-    let itemsWithTags: MpgItem[] = [];
-    if (item != undefined) {
-      itemImportance = item.getImportance();
-      // itemsWithTags = this.getItemsWithTags()
-    }
-    // let showRelatedItem = this.showRelatedItems()
     this.state = {
       currentCategoryId: props.currentCategoryId,
-      currentCategoryName: "???",
       displayMode: props.displayMode,
-      itemName: "???",
+      itemName: itemName,
       currentItemId: props.currentItemId,
-      itemImportance: itemImportance,
+      itemPriority: itemPriority,
       tagSearchText: "",
-      actionSearchText: "",
+      entrySearchText: "",
       tagListVisible: false,
       allTags: props.allTags,
       matchedTags: [],
-      selectedTags: [],
+      existingTags: existingTags,
       allGoals: [],
       goalSearchText: "",
       goalListVisible: false,
       matchedGoals: [],
-      selectedGoals: [],
-      itemsWithTags: itemsWithTags,
-      allActions: this.props.allEnteries,
-      selectedActions: [],
-      matchedActions: [],
-      actionListVisible: false,
+      selectedGoals: existingTags,
+      itemsWithTags: entriesWithTags,
+      allEntries: this.props.allEntries,
+      selectedEntries: [],
+      matchedEntries: [],
+      entryListVisible: false,
       showRelatedItems: false,
       itemDataChanged: false,
       desktop: props.desktop,
-      screenTitle: ""
+      screenTitle: screenName,
+      deleteInProgress: false,
+      existingParentTags: existingParentTags,
+      itemNetPriority: itemNetPriority
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,8 +155,23 @@ class MpgItemDetailsBase extends React.Component<
   public render = () => {
     return (
       <div>
-        {/* {this.props.desktop ? this.renderDesktop() : this.renderMobile()} */}
-        {this.renderItemDetails()}
+        <MpgAppBar
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          goToNewEntry={this.props.goToNewEntry}
+          desktop={this.props.desktop}
+        />
+        <div style={{ paddingTop: 59 }}> </div>
+        <div
+          style={{
+            padding: "10px",
+            display: "flex",
+            justifyContent: "space-around",
+            flexWrap: "wrap",
+            textAlign: "center"
+          }}
+        >
+          {this.renderItemDetails()}
+        </div>
       </div>
     );
   };
@@ -180,61 +214,121 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render item details
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderItemDetails = () => {
-    return (
-      <div>
-        {this.state.displayMode == MpgDisplayMode.Update
-          ? this.renderItemDetailsUpdate()
-          : this.renderNonUpdateItemDetails()}
-      </div>
-    );
-  };
+  // renderItemDetails = () => {
+  //   return (
+  //     <div>
+  //       {this.renderItemCreateUpdate()}
+  //     </div>
+  //   );
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render non update item details
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderNonUpdateItemDetails = () => {
-    return (
-      <div>
-        {this.state.displayMode == MpgDisplayMode.Create
-          ? this.renderItemDetailsCreate()
-          : this.renderItemDetailsView()}
-      </div>
-    );
-  };
+  // renderNonUpdateItemDetails = () => {
+  //   return (
+  //     <div>
+  //       {this.state.displayMode == MpgDisplayMode.Create
+  //         ? this.renderItemCreateUpdate()
+  //         : this.renderItemDetailsView()}
+  //     </div>
+  //   );
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render item details view
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderItemDetailsView = () => {
     const cardWidth = 360;
     // this.props.mpgLogger.debug(
-    //   `MpgItemDetails: renderItemDetails: state:`,
+    //   `MpgItemDetails: renderItemDetailsView: state:`,
     //   this.state
     // );
-    return (
-      <Card
-        elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10 }}
-      >
-        <CardContent>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              margin: 5
-            }}
-          >
-            <Icon onClick={this.switchToUpdate} style={{ margin: "5px" }}>
-              edit
-            </Icon>
-            <Typography variant="h5" color="primary">
-              {this.state.screenTitle}
-            </Typography>
-            <Typography variant="h6" color="primary" />
-          </div>
-          {this.renderItemTags()}
-        </CardContent>
-      </Card>
-    );
+    // return (
+    //   <Card
+    //     elevation={1}
+    //     style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 0 }}
+    //   >
+    //     <CardContent>
+    //       <div
+    //         style={{
+    //           display: "flex",
+    //           justifyContent: "space-between",
+    //           alignItems: "center",
+    //           margin: 0
+    //         }}
+    //       >
+    //         <Typography variant="h5" color="primary">
+    //           {this.state.screenTitle}
+    //         </Typography>
+    //       </div>
+    //       <div
+    //         style={{
+    //           height: 25,
+    //           display: "flex",
+    //           justifyContent: "space-between",
+    //           margin: 0,
+    //           backgroundColor: this.props.primaryColor
+    //         }}
+    //       >
+    //         <Icon
+    //           onClick={this.goBack}
+    //           style={{ margin: 5, color: "white", fontSize: 16 }}
+    //         >
+    //           keyboard_backspace
+    //         </Icon>
+    //         <Icon
+    //           onClick={this.switchToUpdate}
+    //           style={{ margin: 5, color: "white", fontSize: 16 }}
+    //         >
+    //           edit
+    //         </Icon>
+    //         <Icon
+    //           onClick={this.handleDeleteCurrentItem}
+    //           style={{ margin: 5, color: "white", fontSize: 16 }}
+    //         >
+    //           delete
+    //         </Icon>
+    //       </div>
+
+    //       <div
+    //         style={{
+    //           display: "flex",
+    //           flexDirection: "column",
+    //           justifyContent: "flex-start"
+    //         }}
+    //       >
+    //         <TextField
+    //           id="itemImportance"
+    //           label="Importance"
+    //           value={this.state.itemPriority}
+    //           margin="normal"
+    //           style={{ marginLeft: 10, width: "9%" }}
+    //           InputProps={{
+    //             readOnly: true
+    //           }}
+    //         />
+    //         <Divider />
+    //         <Typography variant="h6" color="primary">
+    //           Tags
+    //         </Typography>
+    //         {this.renderItemTags()}
+    //         <Typography variant="h6" color="primary">
+    //           Items with same tags
+    //         </Typography>
+    //         {this.renderRelatedItems()}
+    //         <Divider />
+    //       </div>
+    //     </CardContent>
+    //   </Card>
+    // );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // goback
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goBack = async () => {
+    // this.props.history.goBack();
+    // sometimes goBack doesn't work consistently
+    // we implement this as go to list
+    this.props.history.push("/ItemList");
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // renderItemTags
@@ -244,12 +338,13 @@ class MpgItemDetailsBase extends React.Component<
       <Card elevation={1} style={{ margin: 10 }}>
         <CardContent>
           <div style={{ display: "flex", flexWrap: "wrap" }}>
-            {this.state.selectedTags.map(tag => (
+            {this.state.existingTags.map(tag => (
               <Chip
                 key={tag.getId()}
                 label={tag.getName()}
                 color="primary"
                 onDelete={event => this.handleTagDelete(event, tag.getId())}
+                onClick={event => this.handleTagUpdate(event, tag.getId())}
                 variant="outlined"
                 style={{ margin: "5px" }}
               />
@@ -262,7 +357,77 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render item details
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderItemDetailsUpdate = () => {
+  // renderItemDetailsUpdate = () => {
+  //   const cardWidth = 360;
+  //   // this.props.mpgLogger.debug(
+  //   //   `MpgItemDetails: renderItemDetails: state:`,
+  //   //   this.state
+  //   // );
+  //   return (
+  //     <Card
+  //       elevation={1}
+  //       style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10 }}
+  //     >
+  //       <CardContent>
+  //         <div
+  //           style={{
+  //             display: "flex",
+  //             justifyContent: "space-between",
+  //             margin: 5
+  //           }}
+  //         >
+  //           <Typography variant="h6" color="primary" />
+  //           <Typography variant="h5" color="primary">
+  //             {this.state.screenTitle}
+  //           </Typography>
+  //           <Typography variant="h6" color="primary" />
+  //         </div>
+  //         <div
+  //           style={{
+  //             display: "flex",
+  //             flexDirection: "column",
+  //             justifyContent: "flex-start"
+  //           }}
+  //         >
+  //           <TextField
+  //             ref={input => {
+  //               this.nameInput = input;
+  //             }}
+  //             id="itemName"
+  //             label="Name"
+  //             value={this.state.itemName}
+  //             margin="normal"
+  //             style={{ marginLeft: 10, marginRight: 10, width: "100%" }}
+  //             onChange={this.handleItemNameChange}
+  //             onKeyPress={this.handleKeyPressed}
+  //             onBlur={this.saveItem}
+  //             autoFocus={true}
+  //           />
+  //           <TextField
+  //             id="itemImportance"
+  //             label="Importance"
+  //             value={this.state.itemImportance}
+  //             margin="normal"
+  //             style={{ marginLeft: 10, width: "9%" }}
+  //             onChange={this.handleItemImportanceChange}
+  //             onKeyPress={this.handleKeyPressed}
+  //             onBlur={this.saveItem}
+  //           />
+  //           <Divider />
+  //           {this.showTags() ? this.renderTags() : <div />}
+  //           <Divider />
+  //           {this.showAddActions() ? this.renderAddActions() : <div />}
+  //           <Divider />
+  //           {this.state.showRelatedItems ? this.renderRelatedItems() : <div />}
+  //         </div>
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // render item details
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  renderItemDetails = () => {
     const cardWidth = 360;
     // this.props.mpgLogger.debug(
     //   `MpgItemDetails: renderItemDetails: state:`,
@@ -277,16 +442,16 @@ class MpgItemDetailsBase extends React.Component<
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent: "space-around",
+              justifyItems: "center",
               margin: 5
             }}
           >
-            <Typography variant="h6" color="primary" />
-            <Typography variant="h5" color="primary">
+            <Typography variant="body1" color="primary">
               {this.state.screenTitle}
             </Typography>
-            <Typography variant="h6" color="primary" />
           </div>
+          {this.renderActionIcons()}
           <div
             style={{
               display: "flex",
@@ -295,114 +460,241 @@ class MpgItemDetailsBase extends React.Component<
             }}
           >
             <TextField
-              ref={input => {
-                this.nameInput = input;
-              }}
               id="itemName"
               label="Name"
               value={this.state.itemName}
               margin="normal"
-              style={{ marginLeft: 10, marginRight: 10, width: "100%" }}
+              style={{ marginLeft: 10, marginRight: 10, width: "95%" }}
               onChange={this.handleItemNameChange}
               onKeyPress={this.handleKeyPressed}
-              onBlur={this.saveItem}
               autoFocus={true}
-            />
-            <TextField
-              id="itemImportance"
-              label="Importance"
-              value={this.state.itemImportance}
-              margin="normal"
-              style={{ marginLeft: 10, width: "9%" }}
-              onChange={this.handleItemImportanceChange}
-              onKeyPress={this.handleKeyPressed}
               onBlur={this.saveItem}
             />
-            <Divider />
-            {this.showTags() ? this.renderTags() : <div />}
-            <Divider />
-            {this.showAddActions() ? this.renderAddActions() : <div />}
-            <Divider />
-            {this.state.showRelatedItems ? this.renderRelatedItems() : <div />}
+            <div style={{ display: "flex" }}>
+              <TextField
+                id="itemPriority"
+                label="Priority"
+                value={this.state.itemPriority}
+                margin="normal"
+                style={{ marginLeft: 10, width: "10%" }}
+                onChange={this.handleItemPriorityChange}
+                onKeyPress={this.handleKeyPressed}
+                onBlur={this.saveItem}
+              />
+              <TextField
+                id="itemNetPriority"
+                label="Net priority"
+                value={this.state.itemNetPriority}
+                margin="normal"
+                style={{ marginLeft: 40, width: "30%" }}
+                InputProps={{
+                  readOnly: true
+                }}
+              />
+            </div>
+            {/* <Divider /> */}
+            {this.showAddParentTags() ? this.renderAddParentTags() : <div />}
+            {this.showAddTags() ? this.renderAddTags() : <div />}
+            {this.showEntriesWithTags() ? (
+              this.renderEntriesWithTags()
+            ) : (
+              <div />
+            )}
+            {this.showAddEntry() ? this.renderAddEntry() : <div />}
+            {/*{this.showRelatedEntries()? this.renderRelatedItems(): <div />} */}
           </div>
         </CardContent>
       </Card>
     );
   };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render item details create
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderItemDetailsCreate = () => {
-    const cardWidth = 360;
-    // this.props.mpgLogger.debug(
-    //   `MpgItemDetails: renderItemDetails: state:`,
-    //   this.state
-    // );
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // showEntriesWithTags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showEntriesWithTags = (): boolean => {
     return (
-      <Card
-        elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10 }}
-      >
-        <CardContent>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              margin: 5
-            }}
-          >
-            <Typography variant="h6" color="primary" />
-            <Typography variant="h5" color="primary">
-              {this.state.screenTitle}
-            </Typography>
-            <Typography variant="h6" color="primary" />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start"
-            }}
-          >
-            <TextField
-              ref={input => {
-                this.nameInput = input;
-              }}
-              id="itemName"
-              label="Name"
-              value={this.state.itemName}
-              margin="normal"
-              style={{ marginLeft: 10, marginRight: 10, width: "100%" }}
-              onChange={this.handleItemNameChange}
-              onKeyPress={this.handleKeyPressed}
-              onBlur={this.saveItem}
-              autoFocus={true}
-            />
-            <TextField
-              id="itemImportance"
-              label="Importance"
-              value={this.state.itemImportance}
-              margin="normal"
-              style={{ marginLeft: 10, width: "9%" }}
-              onChange={this.handleItemImportanceChange}
-              onKeyPress={this.handleKeyPressed}
-              onBlur={this.saveItem}
-            />
-            <Divider />
-            {this.showTags() ? this.renderTags() : <div />}
-            <Divider />
-            {this.showAddActions() ? this.renderAddActions() : <div />}
-            <Divider />
-            {this.state.showRelatedItems ? this.renderRelatedItems() : <div />}
-          </div>
-        </CardContent>
-      </Card>
+      this.props.mpgGraph.isCurrentCategoryView() ||
+      this.props.mpgGraph.isCurrentCategoryTag()
     );
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // showRelated Entries
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showRelatedEntries = (): boolean => {
+    return false;
+    // return (this.props.mpgGraph.isCurrenTcategoryView() ||
+    // this.props.mpgGraph.isCurrenTcategoryTag())
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // show add Entry
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showAddEntry = (): boolean => {
+    return (
+      this.props.mpgGraph.isCurrentCategoryView() ||
+      this.props.mpgGraph.isCurrentCategoryTag()
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render entries with tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderEntriesWithTags = () => {
+    const cardWidth = 320;
+    // const theme = createMuiTheme();
+    // const background = theme.palette.background
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-around",
+          padding: "2px 5px 2px 5px",
+          flexWrap: "wrap"
+        }}
+      >
+        <Typography
+          style={{ fontSize: "14px", fontWeight: "bold" }}
+          align="left"
+        >
+          Items with tags
+        </Typography>
+        {this.state.itemsWithTags.map(item => (
+          <Card
+            key={item.getId()}
+            elevation={1}
+            style={{
+              maxWidth: cardWidth,
+              minWidth: cardWidth,
+              margin: "2px 5px 2px 5px"
+            }}
+          >
+            <CardActionArea>
+              <CardContent>
+                <Typography
+                  style={{ fontSize: "12px", fontWeight: "bold" }}
+                  align="left"
+                >
+                  {item.getName()}
+                </Typography>
+                <Typography style={{ fontSize: "10px" }} align="left">
+                  Priority: {item.getNetPriority()} ({item.getPriority()})
+                </Typography>
+                {true ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      paddingTop: "5px"
+                    }}
+                  >
+                    <Icon
+                      style={{ fontSize: "20px" }}
+                      onClick={event =>
+                        this.handleItemWithTagsUpdate(event, item.getId())
+                      }
+                    >
+                      edit
+                    </Icon>
+                    <Icon
+                      style={{ fontSize: "20px" }}
+                      onClick={event =>
+                        this.handleDeleteRelatedItem(event, item.getId())
+                      }
+                    >
+                      delete
+                    </Icon>
+                  </div>
+                ) : (
+                  <div />
+                )}
+              </CardContent>
+            </CardActionArea>
+            {/* </Link> */}
+          </Card>
+        ))}
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render action area
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderActionIcons = () => {
+    let saveIconColor = this.state.itemDataChanged
+      ? "white"
+      : this.props.primaryColor;
+    return (
+      <div
+        style={{
+          height: 25,
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          margin: 0,
+          backgroundColor: this.props.primaryColor
+        }}
+      >
+        <Icon
+          onClick={this.goBack}
+          style={{ margin: 5, color: "white", fontSize: 18 }}
+        >
+          view_headline
+        </Icon>
+        {/* <Icon
+          onClick={this.handleDeleteCurrentItem}
+          style={{ margin: 5, color: "white", fontSize: 18 }}
+        >
+          delete
+        </Icon> */}
+        <Icon
+          onClick={this.saveItem}
+          style={{ margin: 5, color: saveIconColor, fontSize: 18 }}
+        >
+          save
+        </Icon>
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render save and cancel buttons
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderSaveCancelButons = () => {
+    return (
+      <div>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={this.handleSave}
+          style={{ margin: "20px" }}
+        >
+          Save
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={this.handleCancel}
+          style={{ margin: "20px" }}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handle save
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  handleSave = async () => {
+    await this.saveItem();
+    // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.List)
+    this.props.history.goBack();
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handle cancel
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handleCancel = async () => {
+  //   await this.saveItem()
+  //   this.props.history.goBack()
+  // }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render add axtions
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderAddActions = () => {
+  renderAddEntry = () => {
     return (
       <div
         style={{
@@ -412,20 +704,20 @@ class MpgItemDetailsBase extends React.Component<
         }}
       >
         <Typography variant="body1" color="textPrimary">
-          Actions
+          Related entries
         </Typography>
         <TextField
           id="action"
           label="Search or add item"
-          value={this.state.actionSearchText}
+          value={this.state.entrySearchText}
           margin="normal"
           style={{ marginLeft: 10, width: "100%" }}
-          onChange={this.handleActionSearchTextChange}
+          onChange={this.handleEntrySearchTextChange}
           autoComplete="off"
         />
-        {this.state.actionListVisible ? (
+        {this.state.entryListVisible ? (
           <List>
-            {this.state.matchedActions.map(action => (
+            {this.state.matchedEntries.map(action => (
               <ListItem
                 key={action.getId()}
                 button
@@ -436,14 +728,14 @@ class MpgItemDetailsBase extends React.Component<
             ))}
             <Divider />
             <ListItem
-              key={this.addNewActionId}
+              key={this.addNewEntryId}
               button
               onClick={event =>
-                this.handleItemClicked(event, this.addNewActionId)
+                this.handleItemClicked(event, this.addNewEntryId)
               }
             >
               <ListItemText
-                primary={"Add new item: " + this.state.actionSearchText}
+                primary={"Add new item: " + this.state.entrySearchText}
               />
             </ListItem>
           </List>
@@ -454,10 +746,78 @@ class MpgItemDetailsBase extends React.Component<
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render tags
+  // render Add tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  renderTags = () => {
-    // this.props.mpgLogger.debug('MpgActionDetails: selected tags:',this.state.selectedTags)
+  renderAddTags = () => {
+    // this.props.mpgLogger.debug(
+    //   "MpgItemDetails: renderTags, selectedTags:",
+    //   this.state.selectedTags
+    // );
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-start"
+        }}
+      >
+        {/* <Typography variant="body1" color="textPrimary">
+          Tags
+        </Typography> */}
+        <TextField
+          id="tag"
+          label="Search for tags"
+          value={this.state.tagSearchText}
+          margin="normal"
+          style={{ marginLeft: 10, width: "50%" }}
+          onChange={this.handleTagSearchTextChange}
+          autoComplete="off"
+        />
+        {this.state.tagListVisible ? (
+          <List>
+            {this.state.matchedTags.map(tag => (
+              <ListItem
+                key={tag.getId()}
+                button
+                onClick={event => this.handleAddNewTag(event, tag.getId())}
+              >
+                <ListItemText primary={tag.getName()} />
+              </ListItem>
+            ))}
+            <Divider />
+            <ListItem
+              key={this.addNewTagId}
+              button
+              onClick={event => this.handleAddNewTag(event, this.addNewTagId)}
+            >
+              <ListItemText
+                primary={"Add new tag: " + this.state.tagSearchText}
+              />
+            </ListItem>
+          </List>
+        ) : (
+          <div />
+        )}
+        <div style={{ display: "flex", flexWrap: "wrap" }}>
+          {this.state.existingTags.map(tag => (
+            <Chip
+              key={tag.getId()}
+              label={tag.getName()}
+              color="primary"
+              onDelete={event => this.handleTagDelete(event, tag.getId())}
+              onClick={event => this.handleTagUpdate(event, tag.getId())}
+              variant="outlined"
+              style={{ margin: "5px" }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // render Add Parent tags
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  renderAddParentTags = () => {
     return (
       <div
         style={{
@@ -467,7 +827,7 @@ class MpgItemDetailsBase extends React.Component<
         }}
       >
         <Typography variant="body1" color="textPrimary">
-          Tags
+          {/* {this.getTagFullName(this.state.currentItemId)} */}
         </Typography>
         <TextField
           id="tag"
@@ -484,7 +844,7 @@ class MpgItemDetailsBase extends React.Component<
               <ListItem
                 key={tag.getId()}
                 button
-                onClick={event => this.handleTagClicked(event, tag.getId())}
+                onClick={event => this.handleAddParentTag(event, tag.getId())}
               >
                 <ListItemText primary={tag.getName()} />
               </ListItem>
@@ -493,7 +853,9 @@ class MpgItemDetailsBase extends React.Component<
             <ListItem
               key={this.addNewTagId}
               button
-              onClick={event => this.handleTagClicked(event, this.addNewTagId)}
+              onClick={event =>
+                this.handleAddParentTag(event, this.addNewTagId)
+              }
             >
               <ListItemText
                 primary={"Add new tag: " + this.state.tagSearchText}
@@ -504,12 +866,13 @@ class MpgItemDetailsBase extends React.Component<
           <div />
         )}
         <div style={{ display: "flex", flexWrap: "wrap" }}>
-          {this.state.selectedTags.map(tag => (
+          {this.state.existingParentTags.map(tag => (
             <Chip
               key={tag.getId()}
               label={tag.getName()}
               color="primary"
-              onDelete={event => this.handleTagDelete(event, tag.getId())}
+              onDelete={event => this.handleParentTagDelete(event, tag.getId())}
+              onClick={event => this.handleTagUpdate(event, tag.getId())}
               variant="outlined"
               style={{ margin: "5px" }}
             />
@@ -517,6 +880,32 @@ class MpgItemDetailsBase extends React.Component<
         </div>
       </div>
     );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get tag full name
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getTagFullName = (id: string, existingName = ""): string => {
+    let tagFullName = existingName;
+    let tag: MpgItem | undefined;
+    if (id !== "") {
+      tag = this.props.mpgGraph.getTagById(id);
+      if (tag != undefined) {
+        // this.props.mpgLogger.debug('MpgItemDetails: getTagFullName: tag:',tag.getName())
+        for (let parent of tag.getParents()) {
+          tagFullName =
+            this.getTagFullName(parent.getId(), tagFullName) +
+            " > " +
+            tagFullName;
+          // this.props.mpgLogger.debug('MpgItemDetails: getTagFullName: fullname:',tagFullName)
+        }
+        tagFullName += tag.getName() + "\n";
+      } else {
+        this.props.mpgLogger.unexpectedError(
+          "MpgItemDetails: getTagFullName: tag is undefined" + "id: " + id
+        );
+      }
+    }
+    return tagFullName;
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render items
@@ -540,7 +929,7 @@ class MpgItemDetailsBase extends React.Component<
         >
           Related items
         </Typography>
-        {this.state.itemsWithTags.map(item => (
+        {this.state.selectedEntries.map(item => (
           <Card
             key={item.getId()}
             elevation={1}
@@ -569,7 +958,7 @@ class MpgItemDetailsBase extends React.Component<
                     <Icon
                       style={{ fontSize: "20px" }}
                       onClick={event =>
-                        this.handleItemUpdate(event, item.getId())
+                        this.handleItemWithTagsUpdate(event, item.getId())
                       }
                     >
                       edit
@@ -577,7 +966,7 @@ class MpgItemDetailsBase extends React.Component<
                     <Icon
                       style={{ fontSize: "20px" }}
                       onClick={event =>
-                        this.handleItemDelete(event, item.getId())
+                        this.handleDeleteRelatedItem(event, item.getId())
                       }
                     >
                       delete
@@ -599,9 +988,8 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   getCurrentTags = (): MpgItem[] => {
     let currentTags: MpgItem[] = [];
-    this.setCurrentCategoryName();
-    if (this.showTags()) {
-      currentTags = this.state.selectedTags;
+    if (this.showAddTags()) {
+      currentTags = this.state.existingTags;
     } else {
       const currentTag = this.props.mpgGraph.getItemById(
         this.state.currentItemId
@@ -619,19 +1007,47 @@ class MpgItemDetailsBase extends React.Component<
     return currentTags;
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // handle delete icon clicked
+  // handle delete current item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleItemDelete = async (event: React.MouseEvent, id: string) => {
+  handleDeleteCurrentItem = async () => {
     try {
-      await this.props.mpgGraph.deleteItem(id);
+      this.setState({ deleteInProgress: true });
+      this.props.mpgLogger.debug(
+        "MpgItemDetails: handleDeleteCurrentItem: starting delete "
+      );
+      await this.props.mpgGraph.deleteItem(this.state.currentItemId);
+      this.props.mpgLogger.debug(
+        "MpgItemDetails: handleDeleteCurrentItem: item deleted. going back "
+      );
+      this.setState({ deleteInProgress: false });
+      this.props.history.goBack();
     } catch (err) {
-      this.props.mpgLogger.unexpectedError(err, "ItemList: deleteItem: error:");
+      this.props.mpgLogger.unexpectedError(
+        err,
+        "ItemDetails: deleteItem: error:"
+      );
     }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // handle update icon clicked
+  // handle delete related item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleItemUpdate = async (event: React.MouseEvent, itemId: string) => {
+  handleDeleteRelatedItem = async (event: React.MouseEvent, id: string) => {
+    try {
+      await this.props.mpgGraph.deleteItem(id);
+    } catch (err) {
+      this.props.mpgLogger.unexpectedError(
+        err,
+        "ItemDetails: handleDeleteRelatedItem: error:"
+      );
+    }
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle update items with tags  clicked
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleItemWithTagsUpdate = async (
+    event: React.MouseEvent,
+    itemId: string
+  ) => {
     // const itemType = this.props.mpgGraph.getItemType(itemId)
     const item = this.props.mpgGraph.getItemById(itemId);
     // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
@@ -644,18 +1060,48 @@ class MpgItemDetailsBase extends React.Component<
       // await this.props.mpgGraph.setCurrentItemId(itemId)
     } else {
       this.props.mpgLogger.unexpectedError(
-        "ItemList: handleItemUpdate: undefined item"
+        "ItemList: handleItemWithTagUpdate: undefined item"
       );
     }
+    // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle update tag
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleTagUpdate = async (event: React.MouseEvent, itemId: string) => {
+    // this.props.mpgLogger.debug('MpgItemDetails: handleTagUpdate: ')
+    const item = this.props.mpgGraph.getItemById(itemId);
+    // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
+    if (item != undefined) {
+      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+      await this.props.mpgGraph.setCurrentItemId(itemId);
+      await this.props.mpgGraph.setCurrentCategoryId(item.getCategoryId());
+      await this.props.history.push("/ItemDetails");
+      // await this.props.mpgGraph.setCreateOrUpdateMode(CreateOrUpdateModes.Update)
+      // await this.props.mpgGraph.setCurrentItemId(itemId)
+    } else {
+      this.props.mpgLogger.unexpectedError(
+        "ItemList: handleItemWithTagUpdate: undefined item"
+      );
+    }
+    // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // showTags
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  showTags = (): boolean => {
+  showAddTags = (): boolean => {
     return (
-      this.state.currentCategoryName == MpgCategoryType.View ||
-      this.state.currentCategoryName == MpgCategoryType.Entry
+      // this.state.currentCategoryName == MpgCategoryType.View ||
+      // this.state.currentCategoryName == MpgCategoryType.Entry
+      this.props.mpgGraph.isCurrentCategoryView() ||
+      this.props.mpgGraph.isCurrenTcategoryEntry()
     );
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // show Add Parent Tags
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  showAddParentTags = (): boolean => {
+    return this.props.mpgGraph.isCurrentCategoryTag();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // show related item
@@ -668,8 +1114,8 @@ class MpgItemDetailsBase extends React.Component<
     //   return false
     // }
     return (
-      this.state.currentCategoryName == MpgCategoryType.View ||
-      this.state.currentCategoryName == MpgCategoryType.Tag
+      this.props.mpgGraph.isCurrentCategoryView() ||
+      this.props.mpgGraph.isCurrenTcategoryEntry()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -677,8 +1123,8 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   showAddActions = (): boolean => {
     return (
-      this.state.currentCategoryName == MpgCategoryType.View ||
-      this.state.currentCategoryName == MpgCategoryType.Tag
+      this.props.mpgGraph.isCurrentCategoryView() ||
+      this.props.mpgGraph.isCurrenTcategoryEntry()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -688,14 +1134,14 @@ class MpgItemDetailsBase extends React.Component<
     // this.props.mpgLogger.debug(`MpgItemDetails: handleTagDelete: tagId:`,id,` allTags:`,this.props.mpgGraph.getAllTagsSorted())
     const action = this.props.mpgGraph.getActionById(id);
     if (action != undefined) {
-      const newActions = this.state.selectedActions.filter(
+      const newActions = this.state.selectedEntries.filter(
         item => item.getId() != id
       );
       // this.props.mpgLogger.debug(`MpgItemDetails: handleTagDelete: newTags:`,newTags)
       await this.setState({
-        selectedActions: newActions,
-        actionSearchText: "",
-        actionListVisible: false
+        selectedEntries: newActions,
+        entrySearchText: "",
+        entryListVisible: false
       });
     } else {
       this.props.mpgLogger.unexpectedError(
@@ -708,22 +1154,22 @@ class MpgItemDetailsBase extends React.Component<
   // handle item clicked
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleItemClicked = async (event: any, id: string) => {
-    if (id == this.addNewActionId) {
+    if (id == this.addNewEntryId) {
       this.setState({ itemDataChanged: true });
       // await this.saveItem()
-      const newAction = this.props.mpgGraph.createActionInstance(
-        this.state.actionSearchText
+      const newEntry = this.props.mpgGraph.createActionInstance(
+        this.state.entrySearchText
       );
-      if (newAction != undefined) {
+      if (newEntry != undefined) {
         // save the action
-        await this.props.mpgGraph.saveEntry(newAction);
+        await this.props.mpgGraph.saveEntry(newEntry);
         await this.props.mpgGraph.addTagsToItem(
-          newAction,
+          newEntry,
           this.getCurrentTags()
         );
-        const newActions = this.state.selectedActions;
-        newActions.push(newAction);
-        await this.setState({ actionListVisible: false, actionSearchText: "" });
+        const newActions = this.state.selectedEntries;
+        newActions.push(newEntry);
+        await this.setState({ entryListVisible: false, entrySearchText: "" });
       } else {
         this.props.mpgLogger.unexpectedError(
           `MogItemDetails: handleActionClicked: cannot create new action. actionCategorrId was not found`
@@ -734,11 +1180,11 @@ class MpgItemDetailsBase extends React.Component<
       if (action != undefined) {
         // add tags to the action
         await this.props.mpgGraph.addTagsToItem(action, this.getCurrentTags());
-        const newActions = this.state.selectedActions;
+        const newActions = this.state.selectedEntries;
         newActions.push(action);
         await this.setState({
-          actionListVisible: false,
-          actionSearchText: ""
+          entryListVisible: false,
+          entrySearchText: ""
         });
       } else {
         this.props.mpgLogger.unexpectedError(
@@ -753,32 +1199,32 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle action search text change
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleActionSearchTextChange = async (event: React.ChangeEvent) => {
+  handleEntrySearchTextChange = async (event: React.ChangeEvent) => {
     const actionSearchText = (event.target as HTMLInputElement).value;
     // this.props.mpgLogger.debug("ItemDetails: handleTagSearchTextChange: searchText:",tagSearchText)
     if (actionSearchText.length > 0) {
       await this.setState({
-        actionSearchText: actionSearchText,
-        actionListVisible: true
+        entrySearchText: actionSearchText,
+        entryListVisible: true
       });
-      await this.setMatchedIActions();
+      await this.setMatchedIEntries();
     } else {
       await this.setState({
-        actionSearchText: actionSearchText,
-        actionListVisible: false
+        entrySearchText: actionSearchText,
+        entryListVisible: false
       });
     }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // set matched actions
+  // set matched entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  setMatchedIActions = async () => {
+  setMatchedIEntries = async () => {
     let foundActions: MpgItem[] = [];
-    const searchText = this.state.actionSearchText.trim().toLowerCase();
+    const searchText = this.state.entrySearchText.trim().toLowerCase();
     // this.props.mpgLogger.debug("ActionDetails: setMatchedGoals: searchText:",searchText," allGoals:",
     // this.state.allGoals)
     if (searchText.length > 0) {
-      let actionsToBeSearched: MpgItem[] = this.state.allActions;
+      let actionsToBeSearched: MpgItem[] = this.state.allEntries;
       for (let action of actionsToBeSearched) {
         // this.props.mpgLogger.debug("ItemDetails: setMatchedTags: searchText:",searchText,
         // ", tag name:",tag.getName())
@@ -796,7 +1242,7 @@ class MpgItemDetailsBase extends React.Component<
       //     (item)=>{item.name.includes(this.state.helpsRelsSearch)})
     }
     // this.props.mpgLogger.debug(`ItemDetails: setMatchedTags: foundTags:`,foundTags,`AllTags:`,this.state.allTags)
-    await this.setState({ matchedActions: foundActions });
+    await this.setState({ matchedEntries: foundActions });
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle tag delete
@@ -806,17 +1252,17 @@ class MpgItemDetailsBase extends React.Component<
     this.setState({ itemDataChanged: true });
     const tag = this.props.mpgGraph.getTagById(id);
     if (tag != undefined) {
-      const newTags = this.state.selectedTags.filter(
+      const newTags = this.state.existingTags.filter(
         item => item.getId() != id
       );
       // this.props.mpgLogger.debug(`MpgItemDetails: handleTagDelete: newTags:`,newTags)
       await this.setState({
-        selectedTags: newTags,
+        existingTags: newTags,
         tagSearchText: "",
         tagListVisible: false
       });
       await this.setState({
-        itemsWithTags: this.getItemsWithATags(),
+        itemsWithTags: this.getEntriesWithAllTags(),
         itemDataChanged: true
       });
     } else {
@@ -827,24 +1273,140 @@ class MpgItemDetailsBase extends React.Component<
     await this.saveItem();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // getItemsWithTags
+  // handle parent tag delete
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  getItemsWithATags = (): MpgItem[] => {
-    // let tags = this.state.selectedTags
-    // let foundItems: MpgItem[] = []
-    // if (this.state.currentCategoryName == MpgCategoryNames.View) {
-    //   foundItems = this.props.mpgGraph.getActionsWithAllTag(this.getCurrentTags())
-    // } else {
-    //   if (this.state.currentCategoryName == MpgCategoryNames.View){}
-    //   foundItems = this.props.mpgGraph.getItemsWithTags(this.getCurrentTags())
-    // }
-    // this.props.mpgLogger.debug(`MpgContext: getItemsWithTags: currentCategory is: ${this.state.currentCategoryName}`)
+  handleParentTagDelete = async (event: any, id: string) => {
+    // this.props.mpgLogger.debug(`MpgItemDetails: handleTagDelete: tagId:`,id,` allTags:`,this.props.mpgGraph.getAllTagsSorted())
+    this.setState({ itemDataChanged: true });
+    const tag = this.props.mpgGraph.getTagById(id);
+    if (tag != undefined) {
+      const newTags = this.state.existingParentTags;
+      // this.props.mpgLogger.debug(
+      //   `MpgItemDetails: handleTagDelete: newTags:`,
+      //   newTags
+      // );
+      const index = newTags.findIndex(item => item.getId() === id);
+      newTags.splice(index, 1);
+      // this.props.mpgLogger.debug(
+      //   `MpgItemDetails: handleTagDelete: newTags:`,
+      //   newTags
+      // );
+      await this.setState({
+        existingParentTags: newTags,
+        tagSearchText: "",
+        tagListVisible: false
+      });
+      await this.setState({
+        itemDataChanged: true
+      });
+    } else {
+      this.props.mpgLogger.unexpectedError(
+        `MogItemDetails: handleTagDelete: tag was not found. id:${id}`
+      );
+    }
+    await this.saveItem();
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // getEntriesWithTags
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  getEntriesWithAllTags = (): MpgItem[] => {
     return this.props.mpgGraph.getEntriesWithAllTag(this.getCurrentTags());
+    // if (this.props.mpgGraph.isCurrentCategoryView()) {
+    //   foundEntries = this.props.mpgGraph.getEntriesWithAllTag(
+    //     this.getCurrentTags()
+    //   );
+    // } else {
+    //   if (this.props.mpgGraph.isCurrentCategoryTag()) {
+    //     const currentTags: MpgItem[] = [];
+    //     const currentTag = this.props.mpgGraph.getTagById(
+    //       this.state.currentItemId
+    //     );
+    //     // this.props.mpgLogger.debug('MpgItemDetals: getEntriesWithAllTags:',
+    //     // 'current tag:',currentTag)
+    //     if (currentTag != undefined) {
+    //       currentTags.push(currentTag);
+    //       foundEntries = this.props.mpgGraph.getEntriesWithAllTag(
+    //         this.getCurrentTags()
+    //       );
+    //       // this.props.mpgLogger.debug('MpgItemDetals: getEntriesWithAllTags: currentTags',currentTags,
+    //       //   'current tag:',currentTag)
+    //       // console.log('MpgItemDetals: getEntriesWithAllTags: currentTags',currentTags,
+    //       // 'current tag:',currentTag)
+    //       // foundEntries = this.props.mpgGraph.getEntriesWithAllTagsOrChildren(currentTags);
+    //     } else {
+    //       this.props.mpgLogger.unexpectedError(
+    //         "MpgItemDetails: getEntriesWithAllTags:",
+    //         " current tag is undefeined"
+    //       );
+    //     }
+    //   }
+    // }
+    // sort entries
+    // we should delegeste this to Graph
+    // foundEntries = foundEntries.sort((item1, item2) => {
+    //   return item2.getNetPriority() - item1.getNetPriority();
+    // });
+    // return foundEntries;
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle tag clicked
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleTagClicked = async (event: any, id: string) => {
+  // handleTagClicked = async (event: any, id: string) => {
+  //   this.showAddParentTags?
+  //     this.handleAddParentTag(event, id)
+  //     :
+  //     this.handleAddNewTag(event, id)
+  // await this.setState({ itemDataChanged: true });
+  // if (id == this.addNewTagId) {
+  //   const newTag = this.props.mpgGraph.createTagInstance(
+  //     this.state.tagSearchText
+  //   );
+  //   if (newTag != undefined) {
+  //     // save the tag
+  //     this.props.mpgGraph.saveTag(newTag);
+  //     const newTags = this.state.existingTags;
+  //     newTags.push(newTag);
+  //     await this.setState({
+  //       existingTags: newTags,
+  //       tagListVisible: false,
+  //       tagSearchText: "",
+  //       itemDataChanged: true
+  //     });
+  //     await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
+  //   } else {
+  //     this.props.mpgLogger.unexpectedError(
+  //       `MogItemDetails: handleTagClicked: cannot create new tag. TagCategorrId was not found`
+  //     );
+  //   }
+  // } else {
+  //   const tag = this.props.mpgGraph.getTagById(id);
+  //   if (tag != undefined) {
+  //     const newTags = this.state.existingTags;
+  //     newTags.push(tag);
+  //     await this.setState({
+  //       existingTags: newTags,
+  //       tagListVisible: false,
+  //       tagSearchText: "",
+  //       itemDataChanged: true
+  //     });
+  //     await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
+  //   } else {
+  //     this.props.mpgLogger.unexpectedError(
+  //       `MogItemDetails: handleTagClicked: tag was not found. id:${id}`
+  //     );
+  //   }
+  // }
+  // // this.props.mpgLogger.debug(
+  // //   `MpgItemDetails: handleTagClicked (exiting)`,
+  // //   ` state:`,
+  // //   this.state
+  // // );
+  // await this.saveItem();
+  // }
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle add new tag
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleAddNewTag = async (event: any, id: string) => {
     await this.setState({ itemDataChanged: true });
     if (id == this.addNewTagId) {
       const newTag = this.props.mpgGraph.createTagInstance(
@@ -853,14 +1415,15 @@ class MpgItemDetailsBase extends React.Component<
       if (newTag != undefined) {
         // save the tag
         this.props.mpgGraph.saveTag(newTag);
-        const newTags = this.state.selectedTags;
+        const newTags = this.state.existingTags;
         newTags.push(newTag);
         await this.setState({
-          selectedTags: newTags,
+          existingTags: newTags,
           tagListVisible: false,
-          tagSearchText: ""
+          tagSearchText: "",
+          itemDataChanged: true
         });
-        await this.setState({ itemsWithTags: this.getItemsWithATags() });
+        await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
         this.props.mpgLogger.unexpectedError(
           `MogItemDetails: handleTagClicked: cannot create new tag. TagCategorrId was not found`
@@ -869,21 +1432,81 @@ class MpgItemDetailsBase extends React.Component<
     } else {
       const tag = this.props.mpgGraph.getTagById(id);
       if (tag != undefined) {
-        const newTags = this.state.selectedTags;
+        const newTags = this.state.existingTags;
         newTags.push(tag);
         await this.setState({
-          selectedTags: newTags,
+          existingTags: newTags,
           tagListVisible: false,
-          tagSearchText: ""
+          tagSearchText: "",
+          itemDataChanged: true
         });
-        await this.setState({ itemsWithTags: this.getItemsWithATags() });
+        await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
         this.props.mpgLogger.unexpectedError(
           `MogItemDetails: handleTagClicked: tag was not found. id:${id}`
         );
       }
     }
-    // this.props.mpgLogger.debug(`MpgItemDetails: handleTagClicked`, ` state:`, this.state)
+    // this.props.mpgLogger.debug(
+    //   `MpgItemDetails: handleTagClicked (exiting)`,
+    //   ` state:`,
+    //   this.state
+    // );
+    await this.saveItem();
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle parent tag
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleAddParentTag = async (event: any, id: string) => {
+    // this.props.mpgLogger.debug(
+    //   `MpgItemDetails: handleTagClicked: state:`,
+    //   this.state
+    // );
+    await this.setState({ itemDataChanged: true });
+    if (id == this.addNewTagId) {
+      const newTag = this.props.mpgGraph.createTagInstance(
+        this.state.tagSearchText
+      );
+      if (newTag != undefined) {
+        // save the tag
+        this.props.mpgGraph.saveTag(newTag);
+        const newTags = this.state.existingParentTags;
+        newTags.push(newTag);
+        await this.setState({
+          existingParentTags: newTags,
+          tagListVisible: false,
+          tagSearchText: "",
+          itemDataChanged: true
+        });
+        // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
+      } else {
+        this.props.mpgLogger.unexpectedError(
+          `MogItemDetails: handleTagClicked: cannot create new tag. TagCategorrId was not found`
+        );
+      }
+    } else {
+      const tag = this.props.mpgGraph.getTagById(id);
+      if (tag != undefined) {
+        const newTags = this.state.existingParentTags;
+        newTags.push(tag);
+        await this.setState({
+          existingParentTags: newTags,
+          tagListVisible: false,
+          tagSearchText: "",
+          itemDataChanged: true
+        });
+        // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
+      } else {
+        this.props.mpgLogger.unexpectedError(
+          `MogItemDetails: handleTagClicked: tag was not found. id:${id}`
+        );
+      }
+    }
+    // this.props.mpgLogger.debug(
+    //   `MpgItemDetails: handleTagClicked (exiting)`,
+    //   ` state:`,
+    //   this.state
+    // );
     await this.saveItem();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -896,18 +1519,19 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle cancel
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleCancel = () => {
+  handleCancel = async () => {
+    // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     this.props.history.goBack();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // handle item importance change
+  // handle item priority change
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleItemImportanceChange = (event: React.ChangeEvent) => {
-    const itemImportance = parseInt((event.target as HTMLInputElement).value);
-    if (itemImportance != NaN && itemImportance > 0) {
-      this.setState({ itemImportance: itemImportance });
+  handleItemPriorityChange = (event: React.ChangeEvent) => {
+    const itemPriroty = parseInt((event.target as HTMLInputElement).value);
+    if (itemPriroty != NaN && itemPriroty > 0) {
+      this.setState({ itemPriority: itemPriroty });
     } else {
-      this.setState({ itemImportance: 0 });
+      this.setState({ itemPriority: 0 });
       // todo: we should select the field to allow changing the zero
     }
     this.setState({ itemDataChanged: true });
@@ -937,7 +1561,12 @@ class MpgItemDetailsBase extends React.Component<
   setMatchedITags = async () => {
     let foundTags: MpgItem[] = [];
     const searchText = this.state.tagSearchText.trim().toLowerCase();
-    // this.props.mpgLogger.debug("ItemDetails: setMatchedTags: searchText:", searchText, " all tags:", this.state.allTags)
+    // this.props.mpgLogger.debug(
+    //   "ItemDetails: setMatchedTags: searchText:",
+    //   searchText,
+    //   " all tags:",
+    //   this.state.allTags
+    // );
     if (searchText.length > 0) {
       let tagsToBeSearched: MpgItem[] = this.state.allTags;
       for (let tag of tagsToBeSearched) {
@@ -962,16 +1591,16 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // setCategory name
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  setCurrentCategoryName = () => {
-    let currentCategoryName = "???";
-    const currentCategory = this.props.mpgGraph.getCategoryById(
-      this.state.currentCategoryId
-    );
-    if (currentCategory != undefined) {
-      currentCategoryName = currentCategory.getName();
-    }
-    this.setState({ currentCategoryName: currentCategoryName });
-  };
+  // setCurrentCategoryName = () => {
+  //   let currentCategoryName = "???";
+  //   const currentCategory = this.props.mpgGraph.getCategoryById(
+  //     this.state.currentCategoryId
+  //   );
+  //   if (currentCategory != undefined) {
+  //     currentCategoryName = currentCategory.getName();
+  //   }
+  //   this.setState({ currentCategoryName: currentCategoryName });
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -983,6 +1612,60 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will receive props
   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // componentWillReceiveProps = async (newProps: IItemDetailsProps) => {
+  //   this.props.mpgLogger.debug(
+  //     "ItemDetails: componentWillReceiveProps: newProps:",
+  //     newProps
+  //   );
+  //   this.props.mpgLogger.debug(
+  //     "ItemDetails: componentWillReceiveProps: state:",
+  //     this.state
+  //   );
+  //   if (!this.state.deleteInProgress) {
+  //     if (newProps.displayMode == MpgDisplayMode.Update) {
+  //       const item = this.props.mpgGraph.getItemById(newProps.currentItemId);
+  //       if (item != undefined) {
+  //         const tags = item.getTags();
+  //         // this.props.mpgLogger.debug(
+  //         //   "ItemDetails: componentWillReceiveProps: tags:",
+  //         //   tags
+  //         // );
+  //         await this.setState({
+  //           displayMode: newProps.displayMode,
+  //           screenTitle: "Update " + this.props.mpgGraph.getCyrrentCateoryName(),
+  //           itemName: item.getName(),
+  //           itemImportance: item.getImportance(),
+  //           selectedTags: tags,
+  //           currentCategoryId: newProps.currentCategoryId,
+  //           currentItemId: newProps.currentItemId,
+  //           allTags: newProps.allTags,
+  //           allEntries: newProps.allEntries,
+  //           selectedEntries: item.getEntries(),
+  //           itemsWithTags: this.getEntriesWithAllTags()
+  //         });
+  //       } else {
+  //         this.props.mpgLogger.unexpectedError(
+  //           `ItemDetails: componentWillreceiveProps: currentItem is undefined`
+  //         );
+  //       }
+  //     } else {
+  //       const title = "New " + this.props.mpgGraph.getCyrrentCateoryName();
+  //       await this.setState({
+  //         screenTitle: title,
+  //         itemName: "",
+  //         itemImportance: 0,
+  //         selectedTags: [],
+  //         allTags: newProps.allTags,
+  //         allEntries: newProps.allEntries,
+  //         selectedEntries: [],
+  //         itemsWithTags: this.getEntriesWithAllTags()
+  //       });
+  //     }
+  //   }
+  // };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // component will receive props
+  ///////////////////////////////////////////////////////////////////////////////////////////////
   componentWillReceiveProps = async (newProps: IItemDetailsProps) => {
     // this.props.mpgLogger.debug("ItemList: componentWillReceiveProps: newProps:",newProps)
     await this.setState({
@@ -990,15 +1673,14 @@ class MpgItemDetailsBase extends React.Component<
       displayMode: newProps.displayMode,
       currentItemId: newProps.currentItemId,
       allTags: newProps.allTags,
-      allActions: newProps.allEnteries
+      allEntries: newProps.allEntries
     });
-    this.setCurrentCategoryName();
-    this.setViewCreateUpdateMode();
+    this.setCreateOrUpdateMode();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // set View, create or update mode
+  // set create or update mode
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  setViewCreateUpdateMode = async () => {
+  setCreateOrUpdateMode = async () => {
     // await this.setState({
     //   selectedTags: [],
     //   itemsWithTags: [],
@@ -1008,71 +1690,128 @@ class MpgItemDetailsBase extends React.Component<
       const item = this.props.mpgGraph.getItemById(this.state.currentItemId);
       if (item != undefined) {
         await this.setState({
-          selectedTags: item.getTags()
+          existingTags: item.getTags()
         });
-        let relatedItems: MpgItem[] = [];
-        relatedItems = this.getItemsWithATags();
+        let entriesWithTags: MpgItem[] = [];
+        entriesWithTags = this.getEntriesWithAllTags();
         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: relatedItems:`, relatedItems)
-        this.setCurrentCategoryName();
         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
         // load tags
+        let existingParentTags: MpgItem[] = [];
+        if (this.props.mpgGraph.isCurrentCategoryTag) {
+          existingParentTags = item.getParents();
+        }
         await this.setState({
-          screenTitle: item.getName(),
+          displayMode: MpgDisplayMode.Update,
           itemName: item.getName(),
-          itemImportance: item.getImportance(),
-          selectedTags: item.getTags(),
-          selectedGoals: item.getGoals(),
-          selectedActions: item.getActions(),
-          itemsWithTags: relatedItems,
-          showRelatedItems: this.showRelatedItems()
+          itemPriority: item.getPriority(),
+          itemNetPriority: item.getNetPriority(),
+          existingTags: item.getTags(),
+          selectedEntries: item.getEntries(),
+          itemsWithTags: entriesWithTags,
+          showRelatedItems: this.showRelatedItems(),
+          screenTitle: "Update " + this.props.mpgGraph.getCyrrentCateoryName(),
+          existingParentTags: existingParentTags
         });
-        // await this.nameInput.focus();
       } else {
         this.props.mpgLogger.unexpectedError(
           `ItemDetails: setCreateOrUpdate: currentItem is undefined`
         );
       }
     } else {
-      if (this.state.displayMode == MpgDisplayMode.View) {
-        const item = this.props.mpgGraph.getItemById(this.state.currentItemId);
-        if (item != undefined) {
-          await this.setState({
-            selectedTags: item.getTags()
-          });
-          let relatedItems: MpgItem[] = [];
-          relatedItems = this.getItemsWithATags();
-          // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: relatedItems:`, relatedItems)
-          this.setCurrentCategoryName();
-          // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
-          // load tags
-          await this.setState({
-            screenTitle: item.getName(),
-            itemName: item.getName(),
-            itemImportance: item.getImportance(),
-            selectedTags: item.getTags(),
-            selectedGoals: item.getGoals(),
-            selectedActions: item.getActions(),
-            itemsWithTags: relatedItems,
-            showRelatedItems: this.showRelatedItems()
-          });
-        } else {
-          this.props.mpgLogger.unexpectedError(
-            `ItemDetails: setCreateOrUpdate: currentItem is undefined`
-          );
-        }
-      } else {
-        this.setCurrentCategoryName();
-        const title = "New " + this.state.currentCategoryName;
-        await this.setState({
-          screenTitle: title,
-          itemName: "",
-          itemImportance: 0
-        });
-        // await this.nameInput.focus();
-      }
+      // this.setState({ displayMode: MpgDisplayMode.Create, itemName: 'name', itemImportance: 0, })
+      await this.setState({
+        displayMode: MpgDisplayMode.Create,
+        itemName: "",
+        itemPriority: 0,
+        itemNetPriority: 0,
+        existingTags: [],
+        selectedEntries: [],
+        itemsWithTags: [],
+        showRelatedItems: this.showRelatedItems(),
+        screenTitle: "New " + this.props.mpgGraph.getCyrrentCateoryName(),
+        existingParentTags: []
+      });
     }
-    // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: state and end of call:`,this.state)
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // set View, create or update mode
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // setViewCreateUpdateMode = async () => {
+  //   // await this.setState({
+  //   //   selectedTags: [],
+  //   //   itemsWithTags: [],
+  //   // })
+  //   // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: state:`,this.state)
+  //   if (this.state.displayMode == MpgDisplayMode.Update) {
+  //     const item = this.props.mpgGraph.getItemById(this.state.currentItemId);
+  //     if (item != undefined) {
+  //       await this.setState({
+  //         selectedTags: item.getTags()
+  //       });
+  //       let relatedItems: MpgItem[] = [];
+  //       relatedItems = this.getItemsWithATags();
+  //       // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: relatedItems:`, relatedItems)
+  //       // this.setCurrentCategoryName();
+  //       // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
+  //       // load tags
+  //       await this.setState({
+  //         screenTitle: item.getName(),
+  //         itemName: item.getName(),
+  //         itemImportance: item.getImportance(),
+  //         selectedTags: item.getTags(),
+  //         selectedGoals: item.getGoals(),
+  //         selectedActions: item.getActions(),
+  //         itemsWithTags: relatedItems,
+  //         showRelatedItems: this.showRelatedItems()
+  //       });
+  //       // await this.nameInput.focus();
+  //     } else {
+  //       this.props.mpgLogger.unexpectedError(
+  //         `ItemDetails: setCreateOrUpdate: currentItem is undefined`
+  //       );
+  //     }
+  //   } else {
+  //     if (this.state.displayMode == MpgDisplayMode.View) {
+  //       const item = this.props.mpgGraph.getItemById(this.state.currentItemId);
+  //       if (item != undefined) {
+  //         await this.setState({
+  //           selectedTags: item.getTags()
+  //         });
+  //         let relatedItems: MpgItem[] = [];
+  //         relatedItems = this.getItemsWithATags();
+  //         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: relatedItems:`, relatedItems)
+  //         // this.setCurrentCategoryName();
+  //         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
+  //         // load tags
+  //         await this.setState({
+  //           screenTitle: item.getName(),
+  //           itemName: item.getName(),
+  //           itemImportance: item.getImportance(),
+  //           selectedTags: item.getTags(),
+  //           selectedGoals: item.getGoals(),
+  //           selectedActions: item.getActions(),
+  //           itemsWithTags: relatedItems,
+  //           showRelatedItems: this.showRelatedItems()
+  //         });
+  //       } else {
+  //         this.props.mpgLogger.unexpectedError(
+  //           `ItemDetails: setCreateOrUpdate: currentItem is undefined`
+  //         );
+  //       }
+  //     } else {
+  //       // this.setCurrentCategoryName();
+  //       // const title = "New " + this.state.currentCategoryName;
+  //       await this.setState({
+  //         screenTitle: title,
+  //         itemName: "",
+  //         itemImportance: 0
+  //       });
+  //       // await this.nameInput.focus();
+  //     }
+  //   }
+  //   // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: state and end of call:`,this.state)
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle item name change
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1106,67 +1845,81 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle save
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleSave = async () => {
-    try {
-      await this.saveItem();
-      if (!this.props.desktop) {
-        this.props.history.goBack();
-      }
-      this.props.mpgGraph.setCurrentCategoryId(this.state.currentCategoryId);
-    } catch (error) {
-      this.props.mpgLogger.unexpectedError(
-        "MpgItemDetails: handleSave.",
-        error
-      );
-    }
-  };
+  // handleSave = async () => {
+  //   try {
+  //     await this.saveItem();
+  //     if (!this.props.desktop) {
+  //       this.props.history.goBack();
+  //     }
+  //     this.props.mpgGraph.setCurrentCategoryId(this.state.currentCategoryId);
+  //   } catch (error) {
+  //     this.props.mpgLogger.unexpectedError(
+  //       "MpgItemDetails: handleSave.",
+  //       error
+  //     );
+  //   }
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // switch to update
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   switchToUpdate = () => {
     this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+    this.setState({ displayMode: MpgDisplayMode.Update });
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // save new item (withoit exit)
+  // save item
   ///////////////////////////////////////////////////////////////////////////////////////////////
   saveItem = async () => {
     try {
-      this.props.showMessage("Saving data ...");
+      // this.props.showMessage("Saving data ...");
       if (this.state.itemDataChanged) {
-        // this.props.mpgLogger.debug(`MpgItemDetails: SaveItem`, ` state:`, this.state)
+        // this.props.mpgLogger.debug(
+        //   `MpgItemDetails: SaveItem`,
+        //   ` state:`,
+        //   this.state
+        // );
         if (this.state.displayMode == MpgDisplayMode.Create) {
           await this.props.mpgGraph.createItem(
             this.state.currentCategoryId,
             this.state.itemName,
-            this.state.itemImportance,
-            this.state.selectedTags,
-            this.state.selectedGoals,
-            this.state.selectedActions
+            this.state.itemPriority,
+            this.state.existingTags,
+            this.state.existingParentTags,
+            this.state.selectedEntries
           );
           const currentItemId = this.props.mpgGraph.getCurrentItemId();
           await this.setState({
-            displayMode: MpgDisplayMode.Update,
-            currentItemId: currentItemId,
+            // displayMode: MpgDisplayMode.Update,
+            // currentItemId: currentItemId,
             itemDataChanged: false
           });
-          // this.props.mpgLogger.debug(`ItemDetails: Saving item`,` current item id:`,this.state.currentItemId)
-          await this.setViewCreateUpdateMode();
+          // this.props.mpgLogger.debug(
+          //   `ItemDetails: Saving item`,
+          //   ` current item id:`,
+          //   this.state.currentItemId
+          // );
+          // await this.setViewCreateUpdateMode();
           // this.props.mpgLogger.debug(`MpgItemDetails: Saving item`, ` state after crreating item:`, this.state)
         } else {
-          // this.props.mpgLogger.debug("ItemDetails: handleSave: item name:",this.state.itemName);
+          // this.props.mpgLogger.debug(
+          //   "ItemDetails: handleSave: item name:",
+          //   this.state.itemName
+          // );
           await this.props.mpgGraph.updateItem(
             this.state.currentItemId,
             this.state.currentCategoryId,
             this.state.itemName,
-            this.state.itemImportance,
-            this.state.selectedTags,
-            this.state.selectedGoals,
-            this.state.selectedActions
+            this.state.itemPriority,
+            this.state.existingTags,
+            this.state.existingParentTags,
+            this.state.selectedEntries
           );
-          await this.setState({ itemDataChanged: false });
+          await this.setState({
+            itemDataChanged: false
+          });
         }
+        // this.props.showMessage("Data has been saved on the cloud");
       }
-      this.props.showMessage("Data has been saved on the cloud");
     } catch (error) {
       this.props.mpgLogger.unexpectedError(
         "MpgItemDetails: handleSave.",
@@ -1186,6 +1939,7 @@ class MpgItemDetailsBase extends React.Component<
     // ) {
     //   this.nameInput.focus();
     // }
+    this.setCreateOrUpdateMode();
   };
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////

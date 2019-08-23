@@ -12,4 +12,5 @@ export enum MpgDataClasses {
 export enum MpgRelNames {
     Tag = 'Tag',
     Parent = 'Parent',
+    Child = 'Child',
 }

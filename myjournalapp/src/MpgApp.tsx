@@ -6,6 +6,8 @@ import MpgLanding from "./MpgLanding";
 import { Route, Redirect, RouteComponentProps, withRouter } from "react-router";
 import MpgSignup from "./MpgSignup";
 import MpgHome from "./MpgHome";
+import MpgItemList from "./MpgItemList";
+import MpgItemDetails from "./MpgItemDetails";
 import MpgSignin from "./MpgSignin";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgConfirmSignup from "./MpgConfirmSignup";
@@ -35,7 +37,7 @@ import {
 import MpgItem from "./MpgItem";
 import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
-import { flexbox } from "@material-ui/system";
+import blue from "@material-ui/core/colors/blue";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,9 +69,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private filteredItems: MpgItem[] = [];
   private currentCategoryId: string = "";
   private currentItemId: string = ""; // item being displayed or edited
-  private displayMode: MpgDisplayMode = MpgDisplayMode.List;
+  private displayMode: MpgDisplayMode = MpgDisplayMode.Create;
   private allTags: MpgItem[] = [];
-  private allEnteries: MpgItem[] = [];
+  private allEntries: MpgItem[] = [];
+  readonly primaryColor = blue[800];
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +124,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       <div>
         {this.renderMessage()}
         {this.renderDrawer()}
-        {this.renderTestDialog()}
         <Route
           path="/Home"
           render={props => (
@@ -139,13 +141,14 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               currentCategoryId={this.currentCategoryId}
               createOrUpdateMode={this.displayMode}
               allTags={this.allTags}
-              allEnteries={this.allEnteries}
+              allEnteries={this.allEntries}
               goToNewEntry={this.goToNewEntry}
               displayMode={this.displayMode}
+              primaryColor={this.primaryColor}
             />
           )}
         />
-        {/* <Route
+        <Route
           path="/ItemList"
           render={props => (
             <MpgItemList
@@ -160,14 +163,15 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               currentItemId={this.currentItemId}
               desktop={this.state.desktop}
               allCategories={this.allCategories}
-              ViewCreateUpdateMode={this.createOrUpdateMode}
+              displayMode={this.displayMode}
               allTags={this.allTags}
-              allEnteries={this.allEnteries}
+              allEnteries={this.allEntries}
               goToNewEntry={this.goToNewEntry}
+              primaryColor={this.primaryColor}
             />
           )}
-        /> */}
-        {/* <Route
+        />
+        <Route
           path="/ItemDetails"
           render={props => (
             <MpgItemDetails
@@ -178,17 +182,18 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               currentCategoryId={this.currentCategoryId}
               mpgGraph={this.mpgGraph}
               mpgLogger={this.mpgLogger}
-              createOrUpdateMode={this.createOrUpdateMode}
+              displayMode={this.displayMode}
               currentItemId={this.currentItemId}
               allTags={this.allTags}
-              allEnteries={this.allEnteries}
+              allEntries={this.allEntries}
               desktop={this.state.desktop}
               filteredItems={this.filteredItems}
               allCategories={this.allCategories}
               goToNewEntry={this.goToNewEntry}
+              primaryColor={this.primaryColor}
             />
           )}
-        /> */}
+        />
         <Route
           path="/Landing"
           render={props => (
@@ -376,12 +381,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Views
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToViews = async () => {
-    this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     const viewCategoryId = this.mpgGraph.getViewCategoryId();
     if (viewCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/Home");
+        this.props.history.push("/ItemList");
       }
     } else {
       this.handleFatalAppError(
@@ -429,6 +433,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             </ListItemIcon>
             <ListItemText primary="New entry" />
           </ListItem>
+          <ListItem button onClick={this.goToNewView}>
+            <ListItemIcon>
+              <Icon>add</Icon>
+            </ListItemIcon>
+            <ListItemText primary="New view" />
+          </ListItem>
           <Divider />
           <ListItem button onClick={this.handleSignout}>
             <ListItemIcon>
@@ -460,30 +470,49 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to new entry
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToNewEntry = async () => {
-    this.showMessage("New entry ...");
-    const entryCategoryId = this.mpgGraph.getEntryCategoryId();
-    if (entryCategoryId !== undefined) {
-      await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-      await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
-      // if (!this.state.desktop) {
-      //   await this.props.history.push("/Home");
-      // }
-    } else {
-      this.mpgLogger.unexpectedError(
-        `MpgApp: goToEntry: entry category id is undefeined`
-      );
+    if (this.state.userSignedIn) {
+      const entryCategoryId = this.mpgGraph.getEntryCategoryId();
+      if (entryCategoryId !== undefined) {
+        await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
+        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.props.history.push("/ItemDetails");
+      } else {
+        this.mpgLogger.unexpectedError(
+          `MpgApp: goToEntry: entry category id is undefeined`
+        );
+      }
+    }else{
+      this.showMessage('Please signin first')
+    }
+  };
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // go to new view
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  goToNewView = async () => {
+    if (this.state.userSignedIn) {
+      const viewCategoryId = this.mpgGraph.getViewCategoryId();
+      if (viewCategoryId !== undefined) {
+        await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
+        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.props.history.push("/ItemDetails");
+      } else {
+        this.mpgLogger.unexpectedError(
+          `MpgApp: goToEntry: view category id is undefeined`
+        );
+      }
+    }else{
+      this.showMessage('Please signin first')
     }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToTags = async () => {
-    await this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
     const tagCategoryId = this.mpgGraph.getTagCategoryId();
     if (tagCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/Home");
+        this.props.history.push("/ItemList");
       }
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
     } else {
@@ -497,18 +526,16 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToEntries = async () => {
-    await this.mpgGraph.setDisplayMode(MpgDisplayMode.List);
-    const actionCategoryId = this.mpgGraph.getEntryCategoryId();
-    if (actionCategoryId !== undefined) {
-      await this.mpgGraph.setCurrentCategoryId(actionCategoryId);
+    const entryCategoryId = this.mpgGraph.getEntryCategoryId();
+    if (entryCategoryId !== undefined) {
+      await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
       if (!this.state.desktop) {
-        this.props.history.push("/Home");
+        this.props.history.push("/ItemList");
       }
-      await this.mpgGraph.setCurrentCategoryId(actionCategoryId);
     } else {
       this.handleFatalAppError(
         "Unexpected error",
-        new MpgError(`MpgApp: goActions: actionCategoryId is undefined`)
+        new MpgError(`MpgApp: goActions: entryCategoryId is undefined`)
       );
     }
   };
@@ -606,11 +633,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     currentCategoryId: string,
     currentItemId: string,
     displayMode: MpgDisplayMode,
-    allTags: MpgItem[]
+    allTags: MpgItem[],
+    allEntries: MpgItem[]
   ) => {
     // this.mpgLogger.debug(
-    //   "MpgApp: dataRefreshed: allCatagories:",
-    //   this.allCategories
+    //   "MpgApp: dataRefreshed: displayMode:",
+    //   displayMode
     // );
     this.allCategories = allCategories;
     this.filteredItems = filteredAllItems;
@@ -618,6 +646,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     this.currentItemId = currentItemId;
     this.displayMode = displayMode;
     this.allTags = allTags;
+    this.allEntries = allEntries;
     // set state for variables that affect rendering of this component
     await this.setState({
       appError: error,
