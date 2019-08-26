@@ -13,7 +13,6 @@ interface ILandingProps extends RouteComponentProps {
   goToNewEntry: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void
-  desktop: boolean
 }
 interface ILandingState {}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +31,6 @@ class MpgLanding extends React.Component<ILandingProps, ILandingState> {
       <div>
         <MpgAppBar toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
-          desktop={this.props.desktop}
            />
         <div style={{ paddingTop: 59 }}> </div>
         <div

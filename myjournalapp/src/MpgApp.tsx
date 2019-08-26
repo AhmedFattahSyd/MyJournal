@@ -15,6 +15,7 @@ import MpgLogger, { MpgLoggingMode } from "./MpgLogger";
 import { MpgError } from "./MpgError";
 import { MpgUser } from "./MpgUser";
 import MpgCategory from "./MpgCategory";
+import MpgTheme from './MpgTheme';
 import {
   Paper,
   Typography,
@@ -32,12 +33,15 @@ import {
   DialogContent,
   DialogContentText,
   TextField,
-  DialogActions
+  DialogActions,
+  MuiThemeProvider,
+  SnackbarContent
 } from "@material-ui/core";
 import MpgItem from "./MpgItem";
 import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
 import blue from "@material-ui/core/colors/blue";
+import { teal } from "@material-ui/core/colors";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,8 +56,8 @@ interface IMpgAppState {
   message: string;
   messageWaitTime: number;
   sidebarVisible: boolean;
-  desktop: boolean;
   testDialogOpen: boolean;
+  windowWidth: number
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg App class
@@ -73,6 +77,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
+  private windowWidth = 400
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,14 +105,14 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       message: " ",
       messageWaitTime: 6000,
       sidebarVisible: false,
-      desktop: desktop,
-      testDialogOpen: false
+      testDialogOpen: false,
+      windowWidth: this.windowWidth,
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render method
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  public render() {
+  render() {
     return (
       <div>
         {this.state.appErrorState
@@ -121,7 +126,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   /////////////////////////////////////////////////////////////////////////////////////////////////
   public renderNormalApp() {
     return (
-      <div>
+      <MuiThemeProvider theme={MpgTheme}>
+      <div style={{backgroundColor: MpgTheme.palette.background.light,
+        minHeight: window.innerHeight}}>
         {this.renderMessage()}
         {this.renderDrawer()}
         <Route
@@ -135,7 +142,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               mpgGraph={this.mpgGraph}
               mpgLogger={this.mpgLogger}
               allCategories={this.allCategories}
-              desktop={this.state.desktop}
               filteredItems={this.filteredItems}
               currentItemId={this.currentItemId}
               currentCategoryId={this.currentCategoryId}
@@ -161,13 +167,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               mpgLogger={this.mpgLogger}
               filteredItems={this.filteredItems}
               currentItemId={this.currentItemId}
-              desktop={this.state.desktop}
               allCategories={this.allCategories}
               displayMode={this.displayMode}
               allTags={this.allTags}
               allEnteries={this.allEntries}
               goToNewEntry={this.goToNewEntry}
               primaryColor={this.primaryColor}
+              windowWidth={this.state.windowWidth}
             />
           )}
         />
@@ -186,11 +192,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               currentItemId={this.currentItemId}
               allTags={this.allTags}
               allEntries={this.allEntries}
-              desktop={this.state.desktop}
               filteredItems={this.filteredItems}
               allCategories={this.allCategories}
               goToNewEntry={this.goToNewEntry}
               primaryColor={this.primaryColor}
+              windowWidth={this.state.windowWidth}
             />
           )}
         />
@@ -201,7 +207,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               {...props}
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               goToNewEntry={this.goToNewEntry}
-              desktop={this.state.desktop}
             />
           )}
         />
@@ -213,7 +218,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               mpgGraph={this.mpgGraph}
               goToNewEntry={this.goToNewEntry}
-              desktop={this.state.desktop}
             />
           )}
         />
@@ -225,7 +229,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               toggleSidebarVisibility={this.toggleSidebarVisibility}
               mpgGraph={this.mpgGraph}
               goToNewEntry={this.goToNewEntry}
-              desktop={this.state.desktop}
             />
           )}
         />
@@ -239,7 +242,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               setUserState={this.setUserState}
               mpgUser={this.mpgUser}
               goToNewEntry={this.goToNewEntry}
-              desktop={this.state.desktop}
             />
           )}
         />
@@ -255,6 +257,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
           }
         />
       </div>
+      </MuiThemeProvider>
     );
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -315,7 +318,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       <Snackbar
         anchorOrigin={{
           vertical: "bottom",
-          horizontal: "left"
+          horizontal: "left",
         }}
         open={this.state.messageVisible}
         autoHideDuration={this.state.messageWaitTime}
@@ -323,26 +326,31 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         ContentProps={{
           "aria-describedby": "message-id"
         }}
-        message={<span id="message-id">{this.state.message}</span>}
-        action={[
-          <Button
-            key="undo"
-            color="secondary"
-            size="small"
-            onClick={this.handleCloseMessage}
-          >
-            Close
-          </Button>,
-          <IconButton
-            key="close"
-            aria-label="Close"
-            color="inherit"
-            onClick={this.handleCloseMessage}
-          >
-            {/* <CloseIcon /> */}
-          </IconButton>
-        ]}
-      />
+      >
+      <SnackbarContent style={{
+        backgroundColor: MpgTheme.palette.primary.contrastText,
+        color: MpgTheme.palette.primary.dark
+      }}
+      message={<span id="message-id">{this.state.message}</span>}
+      action={[
+        <Button
+          key="undo"
+          color='inherit'
+          size="small"
+          onClick={this.handleCloseMessage}
+        >
+          Close
+        </Button>,
+        <IconButton
+          key="close"
+          aria-label="Close"
+          color='inherit'
+          onClick={this.handleCloseMessage}
+        >
+        </IconButton>
+      ]}
+    />
+    </Snackbar>
     );
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -384,9 +392,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     const viewCategoryId = this.mpgGraph.getViewCategoryId();
     if (viewCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
-      if (!this.state.desktop) {
-        this.props.history.push("/ItemList");
-      }
+      this.props.history.push("/ItemList");
     } else {
       this.handleFatalAppError(
         "Unexpected error",
@@ -511,9 +517,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     const tagCategoryId = this.mpgGraph.getTagCategoryId();
     if (tagCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-      if (!this.state.desktop) {
         this.props.history.push("/ItemList");
-      }
       await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
     } else {
       this.handleFatalAppError(
@@ -526,12 +530,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToEntries = async () => {
+    this.mpgLogger.debug('MpgApp: goToEntries')
     const entryCategoryId = this.mpgGraph.getEntryCategoryId();
     if (entryCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-      if (!this.state.desktop) {
-        this.props.history.push("/ItemList");
-      }
+      this.props.history.push("/ItemList");
     } else {
       this.handleFatalAppError(
         "Unexpected error",
@@ -685,9 +688,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // update desktop setting
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   updateSize = () => {
-    window.innerWidth > this.desktopMinScreenWidth
-      ? this.setState({ desktop: true })
-      : this.setState({ desktop: false });
+    this.windowWidth = window.innerWidth
+    // console.log('MpgApp: window width:', this.windowWidth );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component did mount

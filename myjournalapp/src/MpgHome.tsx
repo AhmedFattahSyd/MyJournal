@@ -9,7 +9,8 @@ import {
   Card,
   CardContent,
   Icon,
-  CardActionArea
+  CardActionArea,
+  useTheme
 } from "@material-ui/core";
 import MpgCategory from "./MpgCategory";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
@@ -17,6 +18,8 @@ import MpgItemList from "./MpgItemList";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgItemDetails from "./MpgItemDetails";
+import ThemeProvider from "@material-ui/core/styles/MuiThemeProvider";
+import MpgTheme from "./MpgTheme";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +32,6 @@ interface IHomeProps extends RouteComponentProps {
   allCategories: MpgCategory[];
   mpgGraph: MpgGraph;
   mpgLogger: MpgLogger;
-  desktop: boolean;
   currentCategoryId: string;
   filteredItems: MpgItem[];
   currentItemId: string;
@@ -44,7 +46,6 @@ interface IHomeState {
   allCategories: MpgCategory[];
   currentCategoryId: string;
   currentItemId: string;
-  desktop: boolean;
   displayMode: MpgDisplayMode;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +63,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       allCategories: props.allCategories,
       currentCategoryId: currentCategoryId,
       currentItemId: props.currentItemId,
-      desktop: props.desktop,
       displayMode: props.displayMode
     };
   }
@@ -75,7 +75,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
-          desktop={this.props.desktop}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -84,7 +83,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
             display: "flex",
             justifyContent: "space-around",
             flexWrap: "wrap",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
           {this.renderCategories()}
@@ -197,27 +196,27 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render itemDetails
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderItemDetails = () => {
-    return (
-      <MpgItemDetails
-        toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-        showMessage={this.props.showMessage}
-        userSignedIn={this.props.userSignedIn}
-        currentCategoryId={this.props.currentCategoryId}
-        mpgGraph={this.props.mpgGraph}
-        mpgLogger={this.props.mpgLogger}
-        displayMode={this.props.createOrUpdateMode}
-        currentItemId={this.props.currentItemId}
-        allTags={this.props.allTags}
-        allEntries={this.props.allEnteries}
-        desktop={this.props.desktop}
-        filteredItems={this.props.filteredItems}
-        allCategories={this.props.allCategories}
-        goToNewEntry={this.props.goToNewEntry}
-        primaryColor={this.props.primaryColor}
-      />
-    );
-  };
+  // renderItemDetails = () => {
+  //   return (
+  //     <MpgItemDetails
+  //       toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+  //       showMessage={this.props.showMessage}
+  //       userSignedIn={this.props.userSignedIn}
+  //       currentCategoryId={this.props.currentCategoryId}
+  //       mpgGraph={this.props.mpgGraph}
+  //       mpgLogger={this.props.mpgLogger}
+  //       displayMode={this.props.createOrUpdateMode}
+  //       currentItemId={this.props.currentItemId}
+  //       allTags={this.props.allTags}
+  //       allEntries={this.props.allEnteries}
+  //       desktop={this.props.desktop}
+  //       filteredItems={this.props.filteredItems}
+  //       allCategories={this.props.allCategories}
+  //       goToNewEntry={this.props.goToNewEntry}
+  //       primaryColor={this.props.primaryColor}
+  //     />
+  //   );
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render itemList
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,7 +248,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       <MpgAppBar
         toggleSidebarVisibility={this.props.toggleSidebarVisibility}
         goToNewEntry={this.props.goToNewEntry}
-        desktop={this.state.desktop}
       />
     );
   };
@@ -261,18 +259,19 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
     return (
       <Card
         elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10 }}
+        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10,
+        backgroundColor: MpgTheme.palette.primary.light }}
       >
         <CardContent>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              margin: 15
+              margin: 15,
             }}
           >
             <Typography variant="h6" color="primary" />
-            <Typography variant="h6" color="primary">
+            <Typography variant="h6" style={{color: MpgTheme.palette.primary.contrastText}}>
               Categories ({this.state.allCategories.length})
             </Typography>
             <Typography variant="h6" color="primary" />
@@ -302,12 +301,13 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                     }
                   >
                     <CardContent>
-                      <div style={{ display: "flex" }}>
-                        <Icon color="primary">view_comfy</Icon>
-                        <div style={{ width: "20px" }} />
-                        <Typography variant="h6" color="textSecondary">
+                      <div style={{ display: "flex", justifyContent:'space-between',
+                    color: MpgTheme.palette.primary.light }}>
+                        <Icon style={{color: MpgTheme.palette.primary.dark}}>view_comfy</Icon>
+                        <Typography variant="h6" style={{color: MpgTheme.palette.primary.dark}}>
                           {type.getName()}
                         </Typography>
+                        <div style={{width:'10px'}}/>
                       </div>
                     </CardContent>
                   </CardActionArea>
@@ -343,7 +343,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       allCategories: newProps.allCategories,
       currentCategoryId: newProps.currentCategoryId,
       currentItemId: newProps.currentItemId,
-      desktop: newProps.desktop,
       displayMode: newProps.displayMode
     });
   }

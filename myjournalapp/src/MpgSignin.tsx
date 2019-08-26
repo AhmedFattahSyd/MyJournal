@@ -25,7 +25,6 @@ interface ISigninProps extends RouteComponentProps {
   setUserState: Function;
   mpgUser: MpgUser;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
-  desktop: boolean
 }
 interface ISigninState {
   userName: string;
@@ -57,7 +56,6 @@ class MpgSigninBase extends React.Component<ISigninProps, ISigninState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
-          desktop={this.props.desktop}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

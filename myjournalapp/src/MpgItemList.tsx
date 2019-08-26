@@ -13,7 +13,8 @@ import {
   CardActionArea,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  Chip
 } from "@material-ui/core";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
@@ -21,6 +22,7 @@ import MpgItem from "./MpgItem";
 import MpgCategory from "./MpgCategory";
 import MpgHome from "./MpgHome";
 import MpgItemDetails from "./MpgItemDetails";
+import MpgTheme from "./MpgTheme";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,15 +42,15 @@ interface IItemListProps extends RouteComponentProps {
   allTags: MpgItem[];
   allEnteries: MpgItem[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
-  desktop: boolean;
   primaryColor: string;
+  windowWidth: number
 }
 interface IItemListState {
   currentCategoryId: string;
   currentCategoryName: string;
   filteredItems: MpgItem[];
   currentItemId: string;
-  desktop: boolean;
+  windowWidth: number
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item List class
@@ -68,7 +70,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       currentCategoryName: categoryName,
       filteredItems: props.filteredItems,
       currentItemId: props.currentItemId,
-      desktop: props.desktop
+      windowWidth: props.windowWidth,
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +82,6 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
-          desktop={this.props.desktop}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -89,45 +90,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
             display: "flex",
             justifyContent: "space-around",
             flexWrap: "wrap",
-            textAlign: "center"
-          }}
-        >
-          {this.renderList()}
-        </div>
-      </div>
-    );
-    // return (
-    //   <div>
-    //     {/* {this.props.desktop ? this.renderDesktop() : this.renderMobile()} */}
-    //     {this.renderList()}
-    //   </div>
-    // );
-  };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // renderDesktop
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  public renderDesktop = () => {
-    return <div>{this.renderList()}</div>;
-  };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // renderMobile
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  public renderMobile = () => {
-    return (
-      <div>
-        <MpgAppBar
-          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-          goToNewEntry={this.props.goToNewEntry}
-          desktop={this.state.desktop}
-        />
-        <div style={{ paddingTop: 59 }}> </div>
-        <div
-          style={{
-            padding: "10px",
-            display: "flex",
-            justifyContent: "space-around",
-            flexWrap: "wrap",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
           {this.renderList()}
@@ -139,22 +102,24 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // render item list
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderList = () => {
-    const cardWidth = 360;
+    const cardWidth = (window.innerWidth > 500)? 500 : window.innerWidth
     return (
       <Card
         elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10 }}
+        style={{width: cardWidth,
+          backgroundColor: MpgTheme.palette.primary.light}}
+        // style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 1 }}
       >
         <CardContent>
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              margin: 15
+              margin: 1,
             }}
           >
             <Typography variant="h6" color="primary" />
-            <Typography variant="h5" color="primary">
+            <Typography variant="h5" style={{color: MpgTheme.palette.primary.contrastText}}>
               {this.state.currentCategoryName + " list"}
             </Typography>
             <Typography variant="h6" color="primary" />
@@ -168,25 +133,26 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // render items
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderItems = () => {
-    const cardWidth = 320;
+    const cardWidth = window.innerWidth - 30
     return (
       <div
         style={{
           display: "flex",
           justifyContent: "space-around",
           padding: "2px 5px 2px 5px",
-          flexWrap: "wrap"
+          flexWrap: "wrap",
         }}
       >
-        <List style={{ maxHeight: "100%", overflow: "auto" }}>
+        {/* <List style={{ maxHeight: "100%", overflow: "auto" }}> */}
           {this.state.filteredItems.map(item => (
             <Card
               key={item.getId()}
               elevation={1}
               style={{
-                maxWidth: cardWidth,
-                minWidth: cardWidth,
-                margin: "2px 5px 2px 5px"
+                width: cardWidth,
+                // maxWidth: cardWidth,
+                // minWidth: cardWidth,
+                margin: "2px 5px 2px 5px",
               }}
             >
               <CardActionArea
@@ -194,17 +160,40 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
               >
                 <CardContent>
                   <Typography
-                    style={{ fontSize: "14px", fontWeight: "bold" }}
+                    style={{ fontSize: "14px", fontWeight: "bold",
+                    color: MpgTheme.palette.primary.dark }}
                     align="left"
                   >
                     {item.getName()}
                   </Typography>
                   <Typography
-                    style={{ fontSize: "10px" }}
+                    style={{ fontSize: "10px",
+                    color: MpgTheme.palette.primary.main }}
                     align="left"
                   >
                     Priority: {item.getNetPriority()} ({item.getPriority()})
                   </Typography>
+                  {/* <Typography
+                    style={{ fontSize: "10px",
+                    color: MpgTheme.palette.primary.main  }}
+                    align="left"
+                  >
+                    Tags: {this.props.mpgGraph.getTagNames(item)}
+                  </Typography> */}
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+            {item.getTags().map(tag => (
+              <Chip
+                key={tag.getId()}
+                label={tag.getName()}
+                color="primary"
+                onDelete={event => this.handleTagDelete4Item(event, item, tag)}
+                onClick={event => this.handleTagUpdate4Item(event, item, tag)}
+                variant="outlined"
+                style={{ margin: "1px", fontSize:'8px' }}
+                size='small'
+              />
+            ))}
+          </div>
                   <div
                     style={{
                       display: "flex",
@@ -213,7 +202,8 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
                     }}
                   >
                     <Icon
-                      style={{ fontSize: "20px" }}
+                      style={{ fontSize: "14px",
+                      color: MpgTheme.palette.primary.dark }}
                       onClick={event =>
                         this.handleItemUpdate(event, item.getId())
                       }
@@ -221,7 +211,8 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
                       edit
                     </Icon>
                     <Icon
-                      style={{ fontSize: "20px" }}
+                      style={{ fontSize: "14px" ,
+                      color: MpgTheme.palette.primary.dark}}
                       onClick={event =>
                         this.handleItemDelete(event, item.getId())
                       }
@@ -234,10 +225,27 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
               {/* </Link> */}
             </Card>
           ))}
-        </List>
+        {/* </List> */}
       </div>
     );
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle tag delete for item
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleTagDelete4Item = async (event: any, item: MpgItem, tag: MpgItem) => {
+    let tags = item.getTags()
+    tags = tags.filter(aTag=> aTag.getId() != tag.getId())
+    await this.props.mpgGraph.updateItemDetails(item.getId(), item.getCategoryId(), item.getName(),
+      item.getPriority(),tags)
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle update tag for item
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleTagUpdate4Item = async (event: React.MouseEvent, item: MpgItem, tag: MpgItem) => {
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+    await this.props.mpgGraph.setCurrentItemId(tag.getId());
+    await this.props.history.push("/ItemDetails");
+};
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // goback
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

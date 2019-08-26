@@ -15,14 +15,5 @@
     "noEmit": true,
     "jsx": "preserve"
   },
-  "include": ["src"],
-  "plugins": [
-    {
-      "name": "typescript-tslint-plugin",
-      "alwaysShowRuleFailuresAsWarnings": false,
-      "ignoreDefinitionFiles": true,
-      "configFile": "../tslint.json",
-      "suppressWhileTypeErrorsPresent": false
-    }
-  ]
+  "include": ["src"]
 }

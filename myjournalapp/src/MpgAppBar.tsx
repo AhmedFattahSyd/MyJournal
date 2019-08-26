@@ -13,10 +13,8 @@ interface IAppBarProps {
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
-  desktop: boolean;
 }
 interface IAppBarState {
-  desktop: boolean;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG AppBar class
@@ -25,7 +23,6 @@ class MpgAppBar extends React.Component<IAppBarProps, IAppBarState> {
   constructor(props: IAppBarProps) {
     super(props);
     this.state = {
-      desktop: props.desktop
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -33,8 +30,7 @@ class MpgAppBar extends React.Component<IAppBarProps, IAppBarState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   public render = () => {
     let myJournal = 'My Journal'
-    let viewMode = myJournal+" (Desktop)"
-    if (!this.state.desktop) viewMode = myJournal+" (Mobile)"
+    let title = myJournal
     return (
       <div>
         <AppBar position="fixed">
@@ -46,7 +42,7 @@ class MpgAppBar extends React.Component<IAppBarProps, IAppBarState> {
               menu
             </Icon>
             <Typography variant="h6" color="inherit">
-              {viewMode}
+              {title}
             </Typography>
             <Icon onClick={this.props.goToNewEntry} style={{ margin: "15px" }}>
               add
@@ -62,7 +58,6 @@ class MpgAppBar extends React.Component<IAppBarProps, IAppBarState> {
   componentWillReceiveProps(newProps: IAppBarProps) {
     // this.props.mpgLogger.debug("Home: componentWillReceiveProps: allCategories:",newProps.allCategories)
     this.setState({
-        desktop: newProps.desktop,
     });
   }
 }

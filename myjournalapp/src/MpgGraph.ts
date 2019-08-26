@@ -141,13 +141,13 @@ export default class MpgGraph {
     return action;
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // save entry
+  // create entry
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  saveEntry = async (action: MpgItem) => {
+  createEntry = async (entry: MpgItem) => {
     // this.mpgLogger.debug(`MpgGraph: createItem: item importance:${importance}`)
     try {
       await this.mpgDataProxy.createDataRecord(
-        this.copyItemToDataRecord(action)
+        this.copyItemToDataRecord(entry)
       );
     } catch (err) {
       this.error = new MpgError("MpgGraph: saveGoal:" + (err as Error).message);
@@ -183,7 +183,7 @@ export default class MpgGraph {
         allTags.push(tag);
       }
     });
-    this.updateItem(
+    this.updateItemDetails(
       item.getId(),
       item.getCategoryId(),
       item.getName(),
@@ -192,9 +192,9 @@ export default class MpgGraph {
     );
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // update item
+  // update item details
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  updateItem = async (
+  updateItemDetails = async (
     itemId: string,
     categoryId: string,
     name: string,
@@ -528,6 +528,39 @@ export default class MpgGraph {
     //   }
     // }
     return foundItems
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // remove tags from item
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  removeTagsFromItem = async (id: string, tags: MpgItem[])=>{
+    const item = this.getItemById(id)
+    try{
+      if(item != undefined){
+        item.removeTags(tags)
+      }else{
+        throw new MpgError('MpgGraph: removeTagsFromItem: undefined item for id:'+id)
+      }
+    }catch (error){
+      this.mpgLogger.unexpectedError('MpgGraph: removeTagsFromItem: error:',error)
+    }finally{
+      this.invokeDataRefreshedFun()
+    }
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get tag names for item
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getTagNames = (item: MpgItem): string =>{
+    let tagsNames = ''
+    let tags: MpgItem[] = []
+    if(this.isCategoryIdTag(item.getCategoryId())){
+      tags = item.getParents()
+    }else{
+      tags = item.getTags()
+    }
+    tags.forEach(tag=>{
+      tagsNames += tag.getName() + ', '
+    })
+    return tagsNames
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get children of a tag

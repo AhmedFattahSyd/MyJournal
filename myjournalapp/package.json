@@ -20,7 +20,6 @@
     "react-router": "^5.0.1",
     "react-router-dom": "^5.0.1",
     "react-scripts": "3.0.1",
-    "typescript": "3.5.2",
     "uuid": "^3.3.2"
   },
   "scripts": {
@@ -43,5 +42,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "typescript": "^3.5.2",
+    "typescript-tslint-plugin": "^0.5.4"
   }
 }
