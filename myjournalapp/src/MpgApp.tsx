@@ -78,6 +78,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
   private windowWidth = 400
+  private version = 'Beta 2 - released: 26 August 2019'
+  private aboutMessage = 'My Journal - version '+this.version
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -446,6 +448,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemText primary="New view" />
           </ListItem>
           <Divider />
+          <ListItem button onClick={this.showAboutMessage}>
+            <ListItemIcon>
+              <Icon>view_headline</Icon>
+            </ListItemIcon>
+            <ListItemText primary="About My Journal" />
+          </ListItem>
+          <Divider />
           <ListItem button onClick={this.handleSignout}>
             <ListItemIcon>
               <CancelPresentation />
@@ -456,6 +465,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       </div>
     );
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // show about message
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showAboutMessage = () => {
+    this.showMessage(this.aboutMessage,6000)
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle Signout
   ///////////////////////////////////////////////////////////////////////////////////////////////
