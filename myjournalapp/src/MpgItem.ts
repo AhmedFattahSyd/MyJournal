@@ -98,6 +98,32 @@ export default class MpgItem extends MpgRootItem {
     });
     return foundParents;
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // isParent
+  // chacek of the tag in the argumnet is a parent of this tag 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isParent = (tag: MpgItem): boolean =>{
+    let isParent = false
+    if(this.getParents().includes(tag)){
+      isParent = true
+    }
+    return isParent
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // areParents
+   // chacek of the tags in the argumnet are parents of this tag 
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  areParents = (tags: MpgItem[]): boolean => {
+    let areParent = false
+    for(let aTag of tags){
+      if(!this.isParent(aTag)){
+        areParent = false
+        break
+      }
+      areParent = true
+    }
+    return areParent
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get children
   // returns direct children only (not descendents)
@@ -199,7 +225,7 @@ export default class MpgItem extends MpgRootItem {
   getTagRel4Tag = (tag: MpgItem): MpgRel | undefined => {
     let foundTagRel: MpgRel | undefined = undefined;
     for (const tagRel of this.tagRels) {
-      if (tagRel.getItem2().getId() == tag.getId()) {
+      if (tagRel.getItem2().getId() === tag.getId()) {
         foundTagRel = tagRel;
         break;
       }
@@ -212,7 +238,7 @@ export default class MpgItem extends MpgRootItem {
   getEntryRel4Action = (tag: MpgItem): MpgRel | undefined => {
     let foundEntryRel: MpgRel | undefined = undefined;
     for (const actionRel of this.entryRels) {
-      if (actionRel.getItem2().getId() == tag.getId()) {
+      if (actionRel.getItem2().getId() === tag.getId()) {
         foundEntryRel = actionRel;
         break;
       }
@@ -225,7 +251,7 @@ export default class MpgItem extends MpgRootItem {
   getParentRel4Parent = (parent: MpgItem): MpgRel | undefined => {
     let foundParentRel: MpgRel | undefined = undefined;
     for (const parentRel of this.parentRels) {
-      if (parentRel.getItem2().getId() == parent.getId()) {
+      if (parentRel.getItem2().getId() === parent.getId()) {
         foundParentRel = parentRel;
         break;
       }
@@ -238,7 +264,7 @@ export default class MpgItem extends MpgRootItem {
   getChildRel4Child = (child: MpgItem): MpgRel | undefined => {
     let foundChildRel: MpgRel | undefined = undefined;
     for (const childRel of this.childRels) {
-      if (childRel.getItem2().getId() == child.getId()) {
+      if (childRel.getItem2().getId() === child.getId()) {
         foundChildRel = childRel;
         break;
       }
@@ -251,7 +277,7 @@ export default class MpgItem extends MpgRootItem {
   // hasTagOLD = (tagId: string): boolean => {
   //     let hasTag: boolean = false
   //     for (const tagRel of this.tagRels) {
-  //         if tagRel.getItem2().getId() == tagId) {
+  //         if tagRel.getItem2().getId() === tagId) {
   //             hasTag = true
   //             break
   //         }
@@ -264,13 +290,13 @@ export default class MpgItem extends MpgRootItem {
   hasTag = (tag: MpgItem): boolean => {
     let hasTag: boolean = false;
     for (const tagRel of this.tagRels) {
-      if (tagRel.getItem2().getId() == tag.getId()) {
+      if (tagRel.getItem2().getId() === tag.getId()) {
         hasTag = true;
         break;
       } else {
         // check if its matches with any of the tag descendants
         for (const descendant of tag.getDescendants()) {
-          if (tagRel.getItem2().getId() == descendant.getId()) {
+          if (tagRel.getItem2().getId() === descendant.getId()) {
             hasTag = true;
             break;
           }
@@ -284,7 +310,7 @@ export default class MpgItem extends MpgRootItem {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   removeTag = (tag: MpgItem)=>{
     const tagRel = this.getTagRel4Tag(tag)
-    if(tagRel != undefined){
+    if(tagRel !== undefined){
       this.removeTagRel(tagRel)
     }else{
       throw new Error('MpgItem: removeTag: tagRel undefined for tag with id:'+tag.getId())
@@ -320,7 +346,7 @@ export default class MpgItem extends MpgRootItem {
   hasParent = (parentId: string): boolean => {
     let hasParent: boolean = false;
     for (const parentRel of this.tagRels) {
-      if (parentRel.getItem2().getId() == parentId) {
+      if (parentRel.getItem2().getId() === parentId) {
         hasParent = true;
         break;
       }
@@ -333,7 +359,7 @@ export default class MpgItem extends MpgRootItem {
   hasChild = (childId: string): boolean => {
     let hasChild: boolean = false;
     for (const childRel of this.tagRels) {
-      if (childRel.getItem2().getId() == childId) {
+      if (childRel.getItem2().getId() === childId) {
         hasChild = true;
         break;
       }
@@ -345,7 +371,7 @@ export default class MpgItem extends MpgRootItem {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   removeTagRel = (tagRel: MpgRel) => {
     this.tagRels = this.tagRels.filter(
-      tagRel => tagRel.getId() != tagRel.getId()
+      aTagRel => aTagRel.getId() !== tagRel.getId()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +379,7 @@ export default class MpgItem extends MpgRootItem {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   removeParentRel = (parentRel2Del: MpgRel) => {
     this.parentRels = this.parentRels.filter(
-      parentRel => parentRel.getId() != parentRel2Del.getId()
+      parentRel => parentRel.getId() !== parentRel2Del.getId()
     );
     const child = parentRel2Del.getItem2();
     const childRel2Del = child.getChildRel4Child(this);
@@ -374,7 +400,7 @@ export default class MpgItem extends MpgRootItem {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   removeChildRel = (childRelId: string) => {
     this.childRels = this.childRels.filter(
-      childRel => childRel.getId() != childRelId
+      childRel => childRel.getId() !== childRelId
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -382,7 +408,7 @@ export default class MpgItem extends MpgRootItem {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   removeEntryRel = (actionRelId: string) => {
     this.entryRels = this.entryRels.filter(
-      actionRel => actionRel.getId() != actionRelId
+      actionRel => actionRel.getId() !== actionRelId
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////

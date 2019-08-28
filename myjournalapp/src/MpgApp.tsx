@@ -8,6 +8,7 @@ import MpgSignup from "./MpgSignup";
 import MpgHome from "./MpgHome";
 import MpgItemList from "./MpgItemList";
 import MpgItemDetails from "./MpgItemDetails";
+import MpgSearch from "./MpgSearch";
 import MpgSignin from "./MpgSignin";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgConfirmSignup from "./MpgConfirmSignup";
@@ -41,7 +42,6 @@ import MpgItem from "./MpgItem";
 import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
 import blue from "@material-ui/core/colors/blue";
-import { teal } from "@material-ui/core/colors";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +56,7 @@ interface IMpgAppState {
   message: string;
   messageWaitTime: number;
   sidebarVisible: boolean;
-  testDialogOpen: boolean;
+  searchDialogOpen: boolean;
   windowWidth: number
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ interface IMpgAppState {
 // this is the main controller of the UI
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
-  private desktopMinScreenWidth = 1000;
+  // private desktopMinScreenWidth = 1000;
   private mpgGraph: MpgGraph;
   private mpgLogger: MpgLogger;
   private mpgUser: MpgUser;
@@ -78,8 +78,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
   private windowWidth = 400
-  private version = 'Beta 2 - released: 26 August 2019'
+  private version = 'Beta 3 - released: 26 August 2019'
   private aboutMessage = 'My Journal - version '+this.version
+  private allViews: MpgItem[] = []
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,10 +94,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       this.dataRefreshed
     );
     this.mpgUser = this.mpgGraph.getMpguser(); // should we keep user here or get it when we want it from graph
-    let desktop = true;
-    window.innerWidth > this.desktopMinScreenWidth
-      ? (desktop = true)
-      : (desktop = false);
+    // let desktop = true;
+    // window.innerWidth > this.desktopMinScreenWidth
+    //   ? (desktop = true)
+    //   : (desktop = false);
     this.state = {
       userSignedIn: false,
       userName: "New user",
@@ -107,9 +108,18 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       message: " ",
       messageWaitTime: 6000,
       sidebarVisible: false,
-      testDialogOpen: false,
+      searchDialogOpen: false,
       windowWidth: this.windowWidth,
     };
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // reload data
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  reloadData = async () => {
+    this.state.userSignedIn
+    ? this.props.history.push("/home")
+    : this.props.history.push("/landing");
+    await this.mpgGraph.loadData()
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render method
@@ -126,10 +136,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   /////////////////////////////////////////////////////////////////////////////////////////////////
   // render normal app
   /////////////////////////////////////////////////////////////////////////////////////////////////
-  public renderNormalApp() {
+  renderNormalApp() {
     return (
       <MuiThemeProvider theme={MpgTheme}>
-      <div style={{backgroundColor: MpgTheme.palette.background.light,
+      <div style={{backgroundColor: MpgTheme.palette.background.default,
         minHeight: window.innerHeight}}>
         {this.renderMessage()}
         {this.renderDrawer()}
@@ -202,6 +212,24 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             />
           )}
         />
+         <Route
+          path="/Search"
+          render={props => (
+            <MpgSearch
+              {...props}
+              toggleSidebarVisibility={this.toggleSidebarVisibility}
+              showMessage={this.showMessage}
+              userSignedIn={this.state.userSignedIn}
+              mpgGraph={this.mpgGraph}
+              mpgLogger={this.mpgLogger}
+              allTags={this.allTags}
+              allEntries={this.allEntries}
+              goToNewEntry={this.goToNewEntry}
+              windowWidth={this.state.windowWidth}
+              allViews={this.allViews}
+            />
+          )}
+        />
         <Route
           path="/Landing"
           render={props => (
@@ -263,37 +291,36 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     );
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // test dialog
+  // saerch dialog
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderTestDialog = () => {
+  renderSearchDialog = () => {
     return (
       <div>
         <dialog
-          open={this.state.testDialogOpen}
-          aria-labelledby="testDialog"
+          open={this.state.searchDialogOpen}
+          aria-labelledby="Search"
           style={{ backgroundColor: "grey" }}
         >
-          <DialogTitle id="testDialog">Test Dialog</DialogTitle>
+          <DialogTitle id="saerchDialog">Search</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              To subscribe to this website, please enter your email address
-              here. We will send updates occasionally.
+              Enter text for earch
             </DialogContentText>
             <TextField
               autoFocus
               margin="dense"
-              id="name"
-              label="Email Address"
+              id="searchText"
+              label="Search text"
               type="email"
               fullWidth
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={this.handleTestDialogClose} color="primary">
-              Cancel
+            <Button onClick={this.handleSearchDialogClose} color="primary">
+              Search
             </Button>
-            <Button onClick={this.handleTestDialogClose} color="primary">
-              Subscribe
+            <Button onClick={this.handleSearchDialogClose} color="primary">
+              close
             </Button>
           </DialogActions>
         </dialog>
@@ -301,16 +328,16 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // handleTestDialogClose
+  // handle saerch DialogClose
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  handleTestDialogClose = () => {
-    this.setState({ testDialogOpen: false });
+  handleSearchDialogClose = () => {
+    this.setState({ searchDialogOpen: false });
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // openTestDialog
+  // open search Dialog
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  openTestDialog = () => {
-    this.setState({ testDialogOpen: true });
+  openSearchDialog = () => {
+    this.setState({ searchDialogOpen: true });
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // message
@@ -402,6 +429,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       );
     }
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go to search
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToSearch = () => {
+    this.props.history.push('/Search')
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render menu items
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,11 +481,25 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemText primary="New view" />
           </ListItem>
           <Divider />
+          <ListItem button onClick={this.goToSearch}>
+            <ListItemIcon>
+              <Icon>search</Icon>
+            </ListItemIcon>
+            <ListItemText primary="Search" />
+          </ListItem>
+          <Divider />
           <ListItem button onClick={this.showAboutMessage}>
             <ListItemIcon>
-              <Icon>view_headline</Icon>
+              <Icon>info</Icon>
             </ListItemIcon>
             <ListItemText primary="About My Journal" />
+          </ListItem>
+          <Divider />
+          <ListItem button onClick={this.reloadData}>
+            <ListItemIcon>
+              <Icon>autorenew</Icon>
+            </ListItemIcon>
+            <ListItemText primary="Reload data from cloud" />
           </ListItem>
           <Divider />
           <ListItem button onClick={this.handleSignout}>
@@ -545,7 +592,6 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToEntries = async () => {
-    this.mpgLogger.debug('MpgApp: goToEntries')
     const entryCategoryId = this.mpgGraph.getEntryCategoryId();
     if (entryCategoryId !== undefined) {
       await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
@@ -652,12 +698,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     currentItemId: string,
     displayMode: MpgDisplayMode,
     allTags: MpgItem[],
-    allEntries: MpgItem[]
+    allEntries: MpgItem[],
+    allViews: MpgItem[],
   ) => {
-    // this.mpgLogger.debug(
-    //   "MpgApp: dataRefreshed: displayMode:",
-    //   displayMode
-    // );
     this.allCategories = allCategories;
     this.filteredItems = filteredAllItems;
     this.currentCategoryId = currentCategoryId;
@@ -665,6 +708,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     this.displayMode = displayMode;
     this.allTags = allTags;
     this.allEntries = allEntries;
+    this.allViews = allViews
     // set state for variables that affect rendering of this component
     await this.setState({
       appError: error,

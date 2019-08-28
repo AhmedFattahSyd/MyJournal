@@ -18,7 +18,7 @@ export default class MpgLogger {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     constructor (handleFatalAppError: Function) {
         this.handleUnexpectedError = handleFatalAppError
-        this. mode = MpgLoggingMode.dev
+        this.mode = MpgLoggingMode.dev
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     // set logging mode
@@ -30,7 +30,7 @@ export default class MpgLogger {
     // log
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     log = (...objects: any) => {
-        if(this.mode != MpgLoggingMode.prod){
+        if(this.mode !== MpgLoggingMode.prod){
             console.log("MpgLogger: time:",new Date(),": debug content:",objects)
         }
     }
@@ -44,7 +44,7 @@ export default class MpgLogger {
     // debug
     //////////////////////////////////////////////////////////////////////////////////////////////////////////
     debug = (...objects: any) => {
-        if(this.mode == MpgLoggingMode.debug){
+        if(this.mode === MpgLoggingMode.debug){
             console.log("MpgLogger: time:",new Date(),": debug content:",objects)
         }
     }
@@ -54,7 +54,7 @@ export default class MpgLogger {
     unexpectedError = (msg: string, err: any = '')=>{
         this.debug(msg, err)
         let errorMsg = ''
-        if(err != undefined){
+        if(err !== undefined){
             errorMsg = msg+err.toString()
         }
         this.handleUnexpectedError(errorMsg,msg)

@@ -11,17 +11,12 @@ import {
   Icon,
   Typography,
   CardActionArea,
-  List,
-  ListItem,
-  ListItemText,
   Chip
 } from "@material-ui/core";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgCategory from "./MpgCategory";
-import MpgHome from "./MpgHome";
-import MpgItemDetails from "./MpgItemDetails";
 import MpgTheme from "./MpgTheme";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
@@ -62,7 +57,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       props.currentCategoryId
     );
     let categoryName = "???";
-    if (category != undefined) {
+    if (category !== undefined) {
       categoryName = category.getName();
     }
     this.state = {
@@ -234,7 +229,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleTagDelete4Item = async (event: any, item: MpgItem, tag: MpgItem) => {
     let tags = item.getTags()
-    tags = tags.filter(aTag=> aTag.getId() != tag.getId())
+    tags = tags.filter(aTag=> aTag.getId() !== tag.getId())
     await this.props.mpgGraph.updateItemDetails(item.getId(), item.getCategoryId(), item.getName(),
       item.getPriority(),tags)
   };
@@ -295,7 +290,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   // check if this is the current item
   ///////////////////////////////////////////////////////////////////////////////////////////////
   isCurrentItem = (id: string): boolean => {
-    if (this.state.currentItemId == id) {
+    if (this.state.currentItemId ===  id) {
       return true;
     } else {
       return false;
@@ -307,7 +302,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   handleItemUpdate = async (event: React.MouseEvent, itemId: string) => {
     const itemType = this.props.mpgGraph.getItemType(itemId);
     // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
-    if (itemType != undefined) {
+    if (itemType !== undefined) {
       await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
       await this.props.mpgGraph.setCurrentItemId(itemId);
       await this.goToItemDetails(itemType);
@@ -335,7 +330,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   handleSelectItem = async (event: React.MouseEvent, itemId: string) => {
     const itemType = this.props.mpgGraph.getItemType(itemId);
     // this.props.mpgLogger.debug('ItemList: handleItemUpdate: itemType:',itemType)
-    if (itemType != undefined) {
+    if (itemType !== undefined) {
       await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
       await this.props.mpgGraph.setCurrentItemId(itemId);
       await this.goToItemDetails(itemType);
@@ -350,7 +345,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleItemDelete = async (event: React.MouseEvent, id: string) => {
     try {
-      await this.props.mpgGraph.deleteItem(id);
+      await this.props.mpgGraph.deleteItemById(id);
     } catch (err) {
       this.props.mpgLogger.unexpectedError(err, "ItemList: deleteItem: error:");
     }
@@ -363,7 +358,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
     const currentCategory = this.props.mpgGraph.getCategoryById(
       this.state.currentCategoryId
     );
-    if (currentCategory != undefined) {
+    if (currentCategory !== undefined) {
       currentCategoryName = currentCategory.getName();
     }
     this.setState({ currentCategoryName: currentCategoryName });
@@ -377,7 +372,7 @@ class MpgItemListBase extends React.Component<IItemListProps, IItemListState> {
       this.state.currentCategoryId
     );
     await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
-    if (currentCategory != undefined) {
+    if (currentCategory !== undefined) {
       await this.goToItemDetails(currentCategory.getName());
       await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
     } else {

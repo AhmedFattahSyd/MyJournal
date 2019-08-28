@@ -10,15 +10,11 @@ import {
   CardContent,
   Icon,
   CardActionArea,
-  useTheme
 } from "@material-ui/core";
 import MpgCategory from "./MpgCategory";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
-import MpgItemList from "./MpgItemList";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
-import MpgItemDetails from "./MpgItemDetails";
-import ThemeProvider from "@material-ui/core/styles/MuiThemeProvider";
 import MpgTheme from "./MpgTheme";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
@@ -130,7 +126,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
     return (
       <div style={{ backgroundColor: "lightgrey" }}>
         {this.isCurrentItemValid() ||
-        this.state.displayMode == MpgDisplayMode.Create
+        this.state.displayMode === MpgDisplayMode.Create
           ? this.renderListAndViewDesktop()
           : this.renderListDesktop()}
       </div>
@@ -187,7 +183,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   isCurrentItemValid = (): boolean => {
     let currentItemValid = false;
     if (
-      this.props.mpgGraph.getItemById(this.state.currentItemId) != undefined
+      this.props.mpgGraph.getItemById(this.state.currentItemId) !== undefined
     ) {
       currentItemValid = true;
     }
@@ -285,9 +281,9 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                 flexWrap: "wrap"
               }}
             >
-              {this.state.allCategories.map(type => (
+              {this.state.allCategories.map(category => (
                 <Card
-                  key={type.getId()}
+                  key={category.getId()}
                   elevation={1}
                   style={{
                     maxWidth: cardWidth - 40,
@@ -297,7 +293,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                 >
                   <CardActionArea
                     onClick={event =>
-                      this.handleCategoryCardClicked(event, type.getId())
+                      this.handleCategoryCardClicked(event, category.getId())
                     }
                   >
                     <CardContent>
@@ -305,7 +301,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                     color: MpgTheme.palette.primary.light }}>
                         <Icon style={{color: MpgTheme.palette.primary.dark}}>view_comfy</Icon>
                         <Typography variant="h6" style={{color: MpgTheme.palette.primary.dark}}>
-                          {type.getName()}
+                          {category.getName()+
+                            ' ('+this.props.mpgGraph.getNumOfItemsInCategory(category)+')'}
                         </Typography>
                         <div style={{width:'10px'}}/>
                       </div>
