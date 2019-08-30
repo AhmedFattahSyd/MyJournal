@@ -16,6 +16,7 @@ import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
+import { ListSearchState } from "./MpgGraph";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -321,7 +322,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleCategoryCardClicked = async (event: React.MouseEvent, id: string) => {
     await this.props.mpgGraph.setCurrentCategoryId(id);
-    this.props.history.push("/ItemList");
+    await this.props.mpgGraph.setListSearchState(ListSearchState.List)
+    this.props.history.push("/Search");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
@@ -335,7 +337,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   // component will receive props
   ///////////////////////////////////////////////////////////////////////////////////////////////
   componentWillReceiveProps(newProps: IHomeProps) {
-    // this.props.mpgLogger.debug("Home: componentWillReceiveProps: allCategories:",newProps.allCategories)
     this.setState({
       allCategories: newProps.allCategories,
       currentCategoryId: newProps.currentCategoryId,

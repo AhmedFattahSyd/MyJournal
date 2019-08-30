@@ -15,11 +15,23 @@ import MpgRel from "./MpgRel";
 // display mode mode
 ///////////////////////////////////////////////////////////////////////////////////////////////
 export enum MpgDisplayMode {
-  // View = "View",
   Create = "Create",
-  Update = "Update",
-  // we should check the removal of 'list' doesn't break anything
-  // List = "List"
+  Update = "Update"
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// list search state
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export enum ListSearchState {
+  List = "List",
+  Search = "Search"
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// define enum for search item type
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export enum CurrentCategoryType {
+  Entry = "Entry",
+  Tag = "Tag",
+  View = "View"
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgGraph class
@@ -44,8 +56,10 @@ export default class MpgGraph {
   private currentCategoryId: string = "";
   protected allEntries: MpgItem[] = [];
   protected allTags: MpgItem[] = [];
-  private reCalcNetPriority = false
-  private allViews: MpgItem[] = []
+  private reCalcNetPriority = false;
+  private allViews: MpgItem[] = [];
+  private currentCategoryType: CurrentCategoryType = CurrentCategoryType.Entry
+  private listSearchState: ListSearchState = ListSearchState.List
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,8 +98,29 @@ export default class MpgGraph {
     this.allCategories = [];
     this.allEntries = [];
     this.allTags = [];
-    this.allViews = []
+    this.allViews = [];
     this.filteredAllItems = [];
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set current category type
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setCurrentItemType = async (type: CurrentCategoryType) => {
+    this.currentCategoryType = type
+    this.setFilteredAllItems();
+    await this.invokeDataRefreshedFun();
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get current category
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getCurrentCategory = (): CurrentCategoryType => {
+    return this.currentCategoryType
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set list search state
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setListSearchState = async (state: ListSearchState) => {
+    this.listSearchState = state
+    await this.invokeDataRefreshedFun();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // getMpguser
@@ -111,8 +146,8 @@ export default class MpgGraph {
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   invokeDataRefreshedFun = async () => {
     // this.mpgLogger.debug('MpgGraph: invokeDataRefreshedFun: allEntries',this.allEntries)
-    if(this.reCalcNetPriority){
-      this.calcNetPriority4AllItems()
+    if (this.reCalcNetPriority) {
+      this.calcNetPriority4AllItems();
     }
     await this.dataRefreshedFun(
       this.error,
@@ -125,6 +160,8 @@ export default class MpgGraph {
       this.allTags,
       this.allEntries,
       this.allViews,
+      this.currentCategoryType,
+      this.listSearchState,
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,10 +258,11 @@ export default class MpgGraph {
           // now update item tags
           this.updateItemTagRels(item, newTags);
           this.updateItemParentRels(item, newParents);
-          this.setAllEntries();
-          // this.setAllGoals()
-          this.setAllTags();
-          this.setAllViews()
+          this.setAllEntries()
+          // this.setAllEntries();
+          // // this.setAllGoals()
+          // this.setAllTags();
+          // this.setAllViews();
           // this.mpgLogger.debug(`MpgGraph: update item: item updated: item`,item)
         } else {
           throw new MpgError(
@@ -240,7 +278,7 @@ export default class MpgGraph {
       this.mpgLogger.unexpectedError("MpgGraph: updateItem:", error);
     } finally {
       // this.setAllGoals()
-      this.reCalcNetPriority = true
+      this.reCalcNetPriority = true;
       this.invokeDataRefreshedFun();
     }
   };
@@ -256,6 +294,7 @@ export default class MpgGraph {
           this.allTags.push(item);
         }
       }
+      this.allTags = this.sortItems(this.allTags);
     } else {
       this.error = new MpgError(
         `MpgGraph: setAllTags: unable to init tags. tagCategoryId is undefined`
@@ -287,6 +326,7 @@ export default class MpgGraph {
         this.allEntries.push(item);
       }
     });
+    this.allEntries = this.sortItems(this.allEntries);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // set all views
@@ -299,6 +339,7 @@ export default class MpgGraph {
         this.allViews.push(item);
       }
     });
+    this.allViews = this.sortItems(this.allViews);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // update tag Rels
@@ -404,54 +445,54 @@ export default class MpgGraph {
   // get item full title(s)
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getFullTitle = (tag: MpgItem, items2process: MpgItem[] = []): string[] => {
-    let fullTitle: string[] = []
+    let fullTitle: string[] = [];
     // let branches: MpgItem[][] = []
     // build the branches until you reach root item
-    const parents = tag.getParents()
-    if(parents.length === 0){
-      fullTitle.push(tag.getName())
-    }else{
-      parents.forEach(parent=>{
-        fullTitle.push('')
-        items2process.push(parent)
-      })
+    const parents = tag.getParents();
+    if (parents.length === 0) {
+      fullTitle.push(tag.getName());
+    } else {
+      parents.forEach(parent => {
+        fullTitle.push("");
+        items2process.push(parent);
+      });
     }
-    return fullTitle
-  }
+    return fullTitle;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // calc item net priority for an entry
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  calcItemNetPriority = (item: MpgItem)=>{
-    if(this.isCategoryIdTag(item.getCategoryId())){
-      this.calcTagNetPriority(item)
-    }else{
+  calcItemNetPriority = (item: MpgItem) => {
+    if (this.isCategoryIdTag(item.getCategoryId())) {
+      this.calcTagNetPriority(item);
+    } else {
       // we will treat entry of view the same for the time being
       // later on we may treat them differently
-      this.calcEntryNetPriority(item)
+      this.calcEntryNetPriority(item);
     }
     // net prioriy = item's priority + sum of tag's priority
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // calc tag net priority  
+  // calc tag net priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  calcTagNetPriority = (tag: MpgItem)=> {
-    let netPriority = tag.getPriority()
-    tag.getParents().forEach(parent=>{
-      netPriority += parent.getNetPriority()
-    })
-    tag.setNetPriority(netPriority)
-  }
+  calcTagNetPriority = (tag: MpgItem) => {
+    let netPriority = tag.getPriority();
+    tag.getParents().forEach(parent => {
+      netPriority += parent.getNetPriority();
+    });
+    tag.setNetPriority(netPriority);
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // calc entry (or view) net priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  calcEntryNetPriority = (entry: MpgItem)=>{
-    let netPriority = entry.getPriority()
-    const tags = entry.getTags()
-    tags.forEach(tag=>{
-      netPriority += tag.getNetPriority()
-    })
-    entry.setNetPriority(netPriority)
-  }
+  calcEntryNetPriority = (entry: MpgItem) => {
+    let netPriority = entry.getPriority();
+    const tags = entry.getTags();
+    tags.forEach(tag => {
+      netPriority += tag.getNetPriority();
+    });
+    entry.setNetPriority(netPriority);
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // remove tag rel from item
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -481,20 +522,34 @@ export default class MpgGraph {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get entries with all tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  getEntriesWithAllTags = (tags: MpgItem[]): MpgItem[] => {
+  getEntriesWithAllTagsNoCurrent = (tags: MpgItem[]): MpgItem[] => {
     const foundItems: MpgItem[] = [];
     if (tags.length > 0) {
       this.allEntries.forEach(entry => {
         if (entry.hasAllTags(tags)) {
           // don't include current item
           // need to check this and see if we need two functions
-          if(entry.getId() !== this.currentItemId){
+          if (entry.getId() !== this.currentItemId) {
             foundItems.push(entry);
           }
         }
       });
     }
-    return this.sortItems(foundItems)
+    return this.sortItems(foundItems);
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // get entries with all tags
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  getEntriesWithAllTags = (tags: MpgItem[]): MpgItem[] => {
+    const foundItems: MpgItem[] = [];
+    if (tags.length > 0) {
+      this.allEntries.forEach(entry => {
+        if (entry.hasAllTags(tags)) {
+          foundItems.push(entry);
+        }
+      });
+    }
+    return this.sortItems(foundItems);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get views with all tags
@@ -504,11 +559,11 @@ export default class MpgGraph {
     if (tags.length > 0) {
       this.allViews.forEach(view => {
         if (view.hasAllTags(tags)) {
-            foundItems.push(view);
+          foundItems.push(view);
         }
       });
     }
-    return this.sortItems(foundItems)
+    return this.sortItems(foundItems);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get tags related all tags
@@ -518,11 +573,11 @@ export default class MpgGraph {
     if (tags.length > 0) {
       this.allTags.forEach(aTag => {
         if (aTag.areParents(tags)) {
-            foundItems.push(aTag);
+          foundItems.push(aTag);
         }
       });
     }
-    return this.sortItems(foundItems)
+    return this.sortItems(foundItems);
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // sort items
@@ -531,132 +586,144 @@ export default class MpgGraph {
     return entries.sort((item1, item2) => {
       return item2.getNetPriority() - item1.getNetPriority();
     });
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get entries with all tags or their children
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  getEntriesWithAllTagsOrChildren = (tags: MpgItem[]) : MpgItem[] => {
-    const foundItems: MpgItem[] = [];
-    // create sets that has tags and their children
-    const tagsWithChildren: MpgItem[][] = []
-    tagsWithChildren.push(tags)
-    this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsWithChildren after inserting origibal tags:',
-      tagsWithChildren)
-    let tagChildren: MpgItem[] = []
-    let index = 0
-    let altTagSet: MpgItem[] =[]
-    for(let currentTag of tags){
-      altTagSet = tags
-      // get descendents
-      tagChildren = this.getTagChildren(currentTag.getId())
-      this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsChildren:',
-      tagChildren)
-      for(let childTag of tagChildren){
-        this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: altTagSet at start of loop:',
-        altTagSet)
-        // remove current tag
-        index = altTagSet.findIndex(item => item.getId() === currentTag.getId())
-        altTagSet.splice(index, 1)
-        altTagSet.push(childTag)
-        this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: altTagSet at end of loop:',
-        altTagSet)
-        tagsWithChildren.push(altTagSet)
-      }
-    }
-    this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsWithChildren:',
-      tagsWithChildren)
-    // let currentFoundItems: MpgItem[] = []
-    // for(let tagSet of tagsWithChildren){
-    //   currentFoundItems = this.getEntriesWithAllTag(tagSet)
-    //   for(let foundItem of currentFoundItems){
-    //     currentFoundItems.push(foundItem)
-    //   }
-    // }
-    return foundItems
-  }
+  // // getEntriesWithAllTagsOrChildren = (tags: MpgItem[]) : MpgItem[] => {
+  // //   const foundItems: MpgItem[] = [];
+  // //   // create sets that has tags and their children
+  // //   const tagsWithChildren: MpgItem[][] = []
+  // //   tagsWithChildren.push(tags)
+  // //   this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsWithChildren after inserting origibal tags:',
+  // //     tagsWithChildren)
+  // //   let tagChildren: MpgItem[] = []
+  // //   let index = 0
+  // //   let altTagSet: MpgItem[] =[]
+  // //   for(let currentTag of tags){
+  // //     altTagSet = tags
+  // //     // get descendents
+  // //     tagChildren = this.getTagChildren(currentTag.getId())
+  // //     this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsChildren:',
+  // //     tagChildren)
+  // //     for(let childTag of tagChildren){
+  // //       this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: altTagSet at start of loop:',
+  // //       altTagSet)
+  // //       // remove current tag
+  // //       index = altTagSet.findIndex(item => item.getId() === currentTag.getId())
+  // //       altTagSet.splice(index, 1)
+  // //       altTagSet.push(childTag)
+  // //       this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: altTagSet at end of loop:',
+  // //       altTagSet)
+  // //       tagsWithChildren.push(altTagSet)
+  // //     }
+  // //   }
+  // //   // this.mpgLogger.debug('MpgGraph: getEntriesWithAllTagsOrChildren: tagsWithChildren:',
+  // //   //   tagsWithChildren)
+  // //   // let currentFoundItems: MpgItem[] = []
+  // //   // for(let tagSet of tagsWithChildren){
+  // //   //   currentFoundItems = this.getEntriesWithAllTag(tagSet)
+  // //   //   for(let foundItem of currentFoundItems){
+  // //   //     currentFoundItems.push(foundItem)
+  // //   //   }
+  // //   // }
+  // //   return foundItems
+  // }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // remove tags from item
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  removeTagsFromItem = async (id: string, tags: MpgItem[])=>{
-    const item = this.getItemById(id)
-    try{
-      if(item !== undefined){
-        item.removeTags(tags)
-      }else{
-        throw new MpgError('MpgGraph: removeTagsFromItem: undefined item for id:'+id)
+  removeTagsFromItem = async (id: string, tags: MpgItem[]) => {
+    const item = this.getItemById(id);
+    try {
+      if (item !== undefined) {
+        item.removeTags(tags);
+      } else {
+        throw new MpgError(
+          "MpgGraph: removeTagsFromItem: undefined item for id:" + id
+        );
       }
-    }catch (error){
-      this.mpgLogger.unexpectedError('MpgGraph: removeTagsFromItem: error:',error)
-    }finally{
-      this.invokeDataRefreshedFun()
+    } catch (error) {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: removeTagsFromItem: error:",
+        error
+      );
+    } finally {
+      this.setAllItemTypes()
+      this.invokeDataRefreshedFun();
     }
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get tag names for item
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  getTagNames = (item: MpgItem): string =>{
-    let tagsNames = ''
-    let tags: MpgItem[] = []
-    if(this.isCategoryIdTag(item.getCategoryId())){
-      tags = item.getParents()
-    }else{
-      tags = item.getTags()
+  getTagNames = (item: MpgItem): string => {
+    let tagsNames = "";
+    let tags: MpgItem[] = [];
+    if (this.isCategoryIdTag(item.getCategoryId())) {
+      tags = item.getParents();
+    } else {
+      tags = item.getTags();
     }
-    tags.forEach(tag=>{
-      tagsNames += tag.getName() + ', '
-    })
-    return tagsNames
-  }
+    tags.forEach(tag => {
+      tagsNames += tag.getName() + ", ";
+    });
+    return tagsNames;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get children of a tag
   // returns direct children only not all descendents
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getTagChildren = (currentTagId: string): MpgItem[] => {
-    const foundChildren: MpgItem[] = []
-    let parent: MpgItem
+    const foundChildren: MpgItem[] = [];
+    let parent: MpgItem;
     // get the tag
-    let currentTag = this.getTagById(currentTagId)
-    if(currentTag !== undefined){
+    let currentTag = this.getTagById(currentTagId);
+    if (currentTag !== undefined) {
       // make sure it's a tag
-      const categoryId = currentTag.getCategoryId()
-      if(this.isCategoryIdTag(categoryId)){
+      const categoryId = currentTag.getCategoryId();
+      if (this.isCategoryIdTag(categoryId)) {
         // scan all tags and check if they are child
-        for(let tag of this.allTags){
+        for (let tag of this.allTags) {
           // this.mpgLogger.debug('MpgGraph: getTagChildren: examining tag',
           // tag.getName())
-          const parentRels = tag.getParentRels()
-          for(let parentRel of parentRels){
-            parent = parentRel.getItem2()
+          const parentRels = tag.getParentRels();
+          for (let parentRel of parentRels) {
+            parent = parentRel.getItem2();
             // this.mpgLogger.debug('MpgGraph: getTagChildren: parent',
             // parent.getName(), 'child is:', parentRel.getItem1().getName())
-            if(parent.getId() === currentTagId){
-              foundChildren.push(parentRel.getItem1())
+            if (parent.getId() === currentTagId) {
+              foundChildren.push(parentRel.getItem1());
             }
           }
         }
-      }else{
-        this.mpgLogger.unexpectedError('MpgGraph: getTagChildren: category is not tag id:'+categoryId)
+      } else {
+        this.mpgLogger.unexpectedError(
+          "MpgGraph: getTagChildren: category is not tag id:" + categoryId
+        );
       }
-    }else{
-      this.mpgLogger.unexpectedError('MpgGraph: getTagChildren: tag is undefined. id:'+currentTagId)
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: getTagChildren: tag is undefined. id:" + currentTagId
+      );
     }
-    return foundChildren
-  }
+    return foundChildren;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // is category id tag
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   isCategoryIdTag = (id: string): boolean => {
-    let idIsTag = false
-    let category = this.getCategoryById(id)
-    if(category !== undefined){
-      if(category.getName() === MpgCategoryType.Tag){
-        idIsTag = true
+    let idIsTag = false;
+    let category = this.getCategoryById(id);
+    if (category !== undefined) {
+      if (category.getName() === MpgCategoryType.Tag) {
+        idIsTag = true;
       }
-    }else{
-      this.mpgLogger.unexpectedError('MpgGraph: isCategoryTag: catgeory is undefined. id:'+id)
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: isCategoryTag: catgeory is undefined. id:" + id
+      );
     }
-    return idIsTag
-  }
+    return idIsTag;
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // create new item
   // this item could be Tag, Entry or view
@@ -687,14 +754,15 @@ export default class MpgGraph {
           this.createItemParentRel(item, parent);
         }
         this.allItems.push(item);
-        this.setAllTags();
-        this.setAllEntries();
-        this.setAllViews()
-        this.setFilteredAllItems();
+        this.setAllItemTypes();
+        // this.setAllTags();
+        // this.setAllEntries();
+        // this.setAllViews();
+        // this.setFilteredAllItems();
         // we will set this a the current item to cope with the crreation 'on the fly' situation
         this.currentItemId = item.getId();
         // this.mpgLogger.debug(`MpgGraph: createItem`,` current item id:`,this.currentItemId)
-        this.viewCreateUpdateMode = MpgDisplayMode.Update
+        this.viewCreateUpdateMode = MpgDisplayMode.Update;
       } else {
         throw new MpgError("MpgGraph: createItem: category is undefined");
       }
@@ -704,7 +772,7 @@ export default class MpgGraph {
       );
       this.unexpectedError = true;
     } finally {
-      this.reCalcNetPriority = true
+      this.reCalcNetPriority = true;
       this.invokeDataRefreshedFun();
     }
   };
@@ -728,7 +796,7 @@ export default class MpgGraph {
     }
     return isView;
   };
-   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // is current category tag
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   isCurrentCategoryTag = (): boolean => {
@@ -769,7 +837,7 @@ export default class MpgGraph {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // is current category entry
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  isCurrenTcategoryEntry = (): boolean => {
+  isCurrentcategoryEntry = (): boolean => {
     let isEntry = false;
     try {
       const currentCategory = this.getCategoryById(this.currentCategoryId);
@@ -785,6 +853,20 @@ export default class MpgGraph {
       this.unexpectedError = true;
     }
     return isEntry;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set current category entry
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setCurrentCategoryEntry = () => {
+    let currentCategoryId = this.getEntryCategoryId();
+    if (currentCategoryId !== undefined) {
+      this.currentCategoryId = currentCategoryId;
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: setCurrentCategoryEntry: entryCategoryId is undefined"
+      );
+    }
+    this.invokeDataRefreshedFun();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // getCurrentItemId
@@ -902,7 +984,10 @@ export default class MpgGraph {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   isCategoryIdValid = (categoryId: string): boolean => {
     let categoryIdValid = false;
-    if (categoryId === "NULL" || this.getCategoryById(categoryId) !== undefined) {
+    if (
+      categoryId === "NULL" ||
+      this.getCategoryById(categoryId) !== undefined
+    ) {
       categoryIdValid = true;
     }
     return categoryIdValid;
@@ -952,6 +1037,7 @@ export default class MpgGraph {
     } catch (err) {
       this.mpgLogger.unexpectedError(err, "MpgGraph: deleteTagRel: error:");
     } finally {
+      this.setAllItemTypes()
       this.invokeDataRefreshedFun();
     }
   };
@@ -999,7 +1085,7 @@ export default class MpgGraph {
         if (index !== -1) {
           this.allItems.splice(index, 1);
         }
-        this.setAllItemTypes()
+        this.setAllItemTypes();
       } else {
         throw new MpgError(
           "MpgGraph: deleteIteItemFromAllItems: item was not found with id:" +
@@ -1015,11 +1101,12 @@ export default class MpgGraph {
   // set all item types
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setAllItemTypes = () => {
-    this.setAllEntries()
-    this.setAllTags()
-    this.setAllViews()
-    this.setFilteredAllItems()
-  }
+    this.calcNetPriority4AllItems();
+    this.setAllEntries();
+    this.setAllTags();
+    this.setAllViews();
+    this.setFilteredAllItems();
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // delete item by id (should replace with delete item)
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1039,23 +1126,24 @@ export default class MpgGraph {
       this.mpgLogger.unexpectedError(err, "MpgGraph: deleteItem: error:");
     } finally {
       // this.setAllGoals()  // should we be invoking setAllRel too?
-      this.reCalcNetPriority = true
+      this.reCalcNetPriority = true;
+      this.setAllItemTypes()
       this.invokeDataRefreshedFun();
     }
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // delete item 
+  // delete item
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   deleteItem = async (item: MpgItem) => {
     try {
-        this.deleteAllItemRels(item);
-        this.deleteItemInAllItems(item.getId());
-        await this.mpgDataProxy.deleteDataRecord(item.getId());
+      this.deleteAllItemRels(item);
+      this.deleteItemInAllItems(item.getId());
+      await this.mpgDataProxy.deleteDataRecord(item.getId());
     } catch (err) {
       this.mpgLogger.unexpectedError(err, "MpgGraph: deleteItem: error:");
     } finally {
-      this.setAllItemTypes()
-      this.reCalcNetPriority = true
+      this.setAllItemTypes();
+      this.reCalcNetPriority = true;
       this.invokeDataRefreshedFun();
     }
   };
@@ -1203,29 +1291,31 @@ export default class MpgGraph {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get number of items in category
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  getNumOfItemsInCategory = (category: MpgCategory): number =>{
-    let numOfItems = 0
-    this.allItems.forEach(item=>{
-      if(item.getCategoryId() === category.getId()){
-        numOfItems += 1
+  getNumOfItemsInCategory = (category: MpgCategory): number => {
+    let numOfItems = 0;
+    this.allItems.forEach(item => {
+      if (item.getCategoryId() === category.getId()) {
+        numOfItems += 1;
       }
-    })
-    return numOfItems
-  }
+    });
+    return numOfItems;
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // load data
   ///////////////////////////////////////////////////////////////////////////////////////////////
   loadData = async () => {
     this.showMessage("Loading data (please wait) ...");
     try {
-      this.clearData()
+      this.clearData();
       await this.mpgDataProxy.loadData();
       await this.loadRecordsIntoObjects();
       // this.mpgLogger.debug("MpgGraph: loadData: items:",this.allItems)
-      this.setFilteredAllItems();
-      this.setAllEntries()
-      this.setAllTags()
-      this.setAllViews()
+      // this.calcNetPriority4AllItems()
+      // this.setFilteredAllItems();
+      // this.setAllEntries();
+      // this.setAllTags();
+      // this.setAllViews();
+      this.setAllItemTypes();
       this.showMessage("Data loaded ...");
     } catch (error) {
       this.error = new MpgError(
@@ -1233,7 +1323,7 @@ export default class MpgGraph {
       );
       this.unexpectedError = true;
     } finally {
-      this.reCalcNetPriority = true
+      this.reCalcNetPriority = true;
       await this.invokeDataRefreshedFun();
     }
   };
@@ -1241,10 +1331,10 @@ export default class MpgGraph {
   // calc net priority for all items
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   calcNetPriority4AllItems = () => {
-    this.allItems.forEach(item=>{
-      this.calcItemNetPriority(item)
-    })
-  }
+    this.allItems.forEach(item => {
+      this.calcItemNetPriority(item);
+    });
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get current category id
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1386,12 +1476,21 @@ export default class MpgGraph {
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // set current category
+  // we should reduce or elimente the use of this function and replace with setCategoryType()
   ///////////////////////////////////////////////////////////////////////////////////////////////
   setCurrentCategoryId = async (id: string) => {
-    //  this.mpgLogger.debug("MpgGraph: setCategoryId:")
     this.currentCategoryId = id;
-    this.setFilteredAllItems();
-    await this.invokeDataRefreshedFun();
+    let categoryType: CurrentCategoryType = CurrentCategoryType.Entry
+    if(this.isCurrentcategoryEntry()){
+      categoryType = CurrentCategoryType.Entry
+    }
+    if(this.isCurrentCategoryView()){
+      categoryType = CurrentCategoryType.View
+    }
+    if(this.isCurrentCategoryTag()){
+      categoryType = CurrentCategoryType.Tag
+    }
+    this.setCurrentItemType(categoryType)
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get action by id

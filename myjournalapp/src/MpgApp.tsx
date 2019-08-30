@@ -5,18 +5,20 @@ import React from "react";
 import MpgLanding from "./MpgLanding";
 import { Route, Redirect, RouteComponentProps, withRouter } from "react-router";
 import MpgSignup from "./MpgSignup";
-import MpgHome from "./MpgHome";
-import MpgItemList from "./MpgItemList";
 import MpgItemDetails from "./MpgItemDetails";
-import MpgSearch from "./MpgSearch";
+import MpgSearch from "./MpgListSearch";
 import MpgSignin from "./MpgSignin";
-import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
+import MpgGraph, {
+  MpgDisplayMode,
+  ListSearchState,
+  CurrentCategoryType
+} from "./MpgGraph";
 import MpgConfirmSignup from "./MpgConfirmSignup";
 import MpgLogger, { MpgLoggingMode } from "./MpgLogger";
 import { MpgError } from "./MpgError";
 import { MpgUser } from "./MpgUser";
 import MpgCategory from "./MpgCategory";
-import MpgTheme from './MpgTheme';
+import MpgTheme from "./MpgTheme";
 import {
   Paper,
   Typography,
@@ -42,6 +44,7 @@ import MpgItem from "./MpgItem";
 import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
 import blue from "@material-ui/core/colors/blue";
+import MpgHome from "./MpgHome";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +60,9 @@ interface IMpgAppState {
   messageWaitTime: number;
   sidebarVisible: boolean;
   searchDialogOpen: boolean;
-  windowWidth: number
+  windowWidth: number;
+  listSearchState: ListSearchState;
+  currentItemType: CurrentCategoryType;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg App class
@@ -77,10 +82,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private windowWidth = 400
-  private version = 'Beta 3 - released: 26 August 2019'
-  private aboutMessage = 'My Journal - version '+this.version
-  private allViews: MpgItem[] = []
+  private windowWidth = 400;
+  private version = "Beta 4 - released: 30 August 2019";
+  private aboutMessage = "My Journal - version " + this.version;
+  private allViews: MpgItem[] = [];
+  // private listSearchState = ListSearchState.List
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +116,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       sidebarVisible: false,
       searchDialogOpen: false,
       windowWidth: this.windowWidth,
+      listSearchState: ListSearchState.List,
+      currentItemType: CurrentCategoryType.View
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,10 +125,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   reloadData = async () => {
     this.state.userSignedIn
-    ? this.props.history.push("/home")
-    : this.props.history.push("/landing");
-    await this.mpgGraph.loadData()
-  }
+      ? this.props.history.push("/home")
+      : this.props.history.push("/landing");
+    await this.mpgGraph.loadData();
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render method
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,34 +147,38 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   renderNormalApp() {
     return (
       <MuiThemeProvider theme={MpgTheme}>
-      <div style={{backgroundColor: MpgTheme.palette.background.default,
-        minHeight: window.innerHeight}}>
-        {this.renderMessage()}
-        {this.renderDrawer()}
-        <Route
-          path="/Home"
-          render={props => (
-            <MpgHome
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              showMessage={this.showMessage}
-              userSignedIn={this.state.userSignedIn}
-              mpgGraph={this.mpgGraph}
-              mpgLogger={this.mpgLogger}
-              allCategories={this.allCategories}
-              filteredItems={this.filteredItems}
-              currentItemId={this.currentItemId}
-              currentCategoryId={this.currentCategoryId}
-              createOrUpdateMode={this.displayMode}
-              allTags={this.allTags}
-              allEnteries={this.allEntries}
-              goToNewEntry={this.goToNewEntry}
-              displayMode={this.displayMode}
-              primaryColor={this.primaryColor}
-            />
-          )}
-        />
-        <Route
+        <div
+          style={{
+            backgroundColor: MpgTheme.palette.background.default,
+            minHeight: window.innerHeight
+          }}
+        >
+          {this.renderMessage()}
+          {this.renderDrawer()}
+          <Route
+            path="/Home"
+            render={props => (
+              <MpgHome
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                showMessage={this.showMessage}
+                userSignedIn={this.state.userSignedIn}
+                mpgGraph={this.mpgGraph}
+                mpgLogger={this.mpgLogger}
+                allCategories={this.allCategories}
+                filteredItems={this.filteredItems}
+                currentItemId={this.currentItemId}
+                currentCategoryId={this.currentCategoryId}
+                createOrUpdateMode={this.displayMode}
+                allTags={this.allTags}
+                allEnteries={this.allEntries}
+                goToNewEntry={this.goToNewEntry}
+                displayMode={this.displayMode}
+                primaryColor={this.primaryColor}
+              />
+            )}
+          />
+          {/* <Route
           path="/ItemList"
           render={props => (
             <MpgItemList
@@ -188,108 +200,124 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
               windowWidth={this.state.windowWidth}
             />
           )}
-        />
-        <Route
-          path="/ItemDetails"
-          render={props => (
-            <MpgItemDetails
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              showMessage={this.showMessage}
-              userSignedIn={this.state.userSignedIn}
-              currentCategoryId={this.currentCategoryId}
-              mpgGraph={this.mpgGraph}
-              mpgLogger={this.mpgLogger}
-              displayMode={this.displayMode}
-              currentItemId={this.currentItemId}
-              allTags={this.allTags}
-              allEntries={this.allEntries}
-              filteredItems={this.filteredItems}
-              allCategories={this.allCategories}
-              goToNewEntry={this.goToNewEntry}
-              primaryColor={this.primaryColor}
-              windowWidth={this.state.windowWidth}
-            />
-          )}
-        />
-         <Route
-          path="/Search"
-          render={props => (
-            <MpgSearch
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              showMessage={this.showMessage}
-              userSignedIn={this.state.userSignedIn}
-              mpgGraph={this.mpgGraph}
-              mpgLogger={this.mpgLogger}
-              allTags={this.allTags}
-              allEntries={this.allEntries}
-              goToNewEntry={this.goToNewEntry}
-              windowWidth={this.state.windowWidth}
-              allViews={this.allViews}
-            />
-          )}
-        />
-        <Route
-          path="/Landing"
-          render={props => (
-            <MpgLanding
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              goToNewEntry={this.goToNewEntry}
-            />
-          )}
-        />
-        <Route
-          path="/Signup"
-          render={props => (
-            <MpgSignup
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              mpgGraph={this.mpgGraph}
-              goToNewEntry={this.goToNewEntry}
-            />
-          )}
-        />
-        <Route
-          path="/ConfirmSignup"
-          render={props => (
-            <MpgConfirmSignup
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              mpgGraph={this.mpgGraph}
-              goToNewEntry={this.goToNewEntry}
-            />
-          )}
-        />
-        <Route
-          path="/Signin"
-          render={props => (
-            <MpgSignin
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              showMessage={this.showMessage}
-              setUserState={this.setUserState}
-              mpgUser={this.mpgUser}
-              goToNewEntry={this.goToNewEntry}
-            />
-          )}
-        />
-        <Route
-          exact
-          path="/"
-          render={() =>
-            this.state.userSignedIn ? (
-              <Redirect to="/Landing" />
-            ) : (
-              <Redirect to="/Landing" />
-            )
-          }
-        />
-      </div>
+        /> */}
+          <Route
+            path="/ItemDetails"
+            render={props => (
+              <MpgItemDetails
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                showMessage={this.showMessage}
+                userSignedIn={this.state.userSignedIn}
+                currentCategoryId={this.currentCategoryId}
+                mpgGraph={this.mpgGraph}
+                mpgLogger={this.mpgLogger}
+                displayMode={this.displayMode}
+                currentItemId={this.currentItemId}
+                allTags={this.allTags}
+                allEntries={this.allEntries}
+                filteredItems={this.filteredItems}
+                allCategories={this.allCategories}
+                goToNewEntry={this.goToNewEntry}
+                primaryColor={this.primaryColor}
+                windowWidth={this.state.windowWidth}
+              />
+            )}
+          />
+          <Route
+            path="/Search"
+            render={props => (
+              <MpgSearch
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                showMessage={this.showMessage}
+                userSignedIn={this.state.userSignedIn}
+                mpgGraph={this.mpgGraph}
+                mpgLogger={this.mpgLogger}
+                allTags={this.allTags}
+                allEntries={this.allEntries}
+                goToNewEntry={this.goToNewEntry}
+                windowWidth={this.state.windowWidth}
+                allViews={this.allViews}
+                listSearchState={this.state.listSearchState}
+                currentItemType={this.state.currentItemType}
+              />
+            )}
+          />
+          <Route
+            path="/Landing"
+            render={props => (
+              <MpgLanding
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                goToNewEntry={this.goToNewEntry}
+              />
+            )}
+          />
+          <Route
+            path="/Signup"
+            render={props => (
+              <MpgSignup
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                mpgGraph={this.mpgGraph}
+                goToNewEntry={this.goToNewEntry}
+              />
+            )}
+          />
+          <Route
+            path="/ConfirmSignup"
+            render={props => (
+              <MpgConfirmSignup
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                mpgGraph={this.mpgGraph}
+                goToNewEntry={this.goToNewEntry}
+              />
+            )}
+          />
+          <Route
+            path="/Signin"
+            render={props => (
+              <MpgSignin
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                showMessage={this.showMessage}
+                setUserState={this.setUserState}
+                mpgUser={this.mpgUser}
+                goToNewEntry={this.goToNewEntry}
+              />
+            )}
+          />
+          <Route
+            exact
+            path="/"
+            render={() =>
+              this.state.userSignedIn ? (
+                <Redirect to="/Home" />
+              ) : (
+                <Redirect to="/Landing" />
+              )
+            }
+          />
+        </div>
       </MuiThemeProvider>
     );
   }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // toggle list search state
+  // switch to the use of set list search state
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  toggleListSearchState = () => {
+    switch (this.state.listSearchState) {
+      case ListSearchState.List:
+        this.setState({ listSearchState: ListSearchState.Search });
+        break;
+      case ListSearchState.Search:
+        this.setState({ listSearchState: ListSearchState.List });
+        break;
+    }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // saerch dialog
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,9 +331,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         >
           <DialogTitle id="saerchDialog">Search</DialogTitle>
           <DialogContent>
-            <DialogContentText>
-              Enter text for earch
-            </DialogContentText>
+            <DialogContentText>Enter text for earch</DialogContentText>
             <TextField
               autoFocus
               margin="dense"
@@ -347,7 +373,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       <Snackbar
         anchorOrigin={{
           vertical: "bottom",
-          horizontal: "left",
+          horizontal: "left"
         }}
         open={this.state.messageVisible}
         autoHideDuration={this.state.messageWaitTime}
@@ -356,30 +382,30 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
           "aria-describedby": "message-id"
         }}
       >
-      <SnackbarContent style={{
-        backgroundColor: MpgTheme.palette.primary.contrastText,
-        color: MpgTheme.palette.primary.dark
-      }}
-      message={<span id="message-id">{this.state.message}</span>}
-      action={[
-        <Button
-          key="undo"
-          color='inherit'
-          size="small"
-          onClick={this.handleCloseMessage}
-        >
-          Close
-        </Button>,
-        <IconButton
-          key="close"
-          aria-label="Close"
-          color='inherit'
-          onClick={this.handleCloseMessage}
-        >
-        </IconButton>
-      ]}
-    />
-    </Snackbar>
+        <SnackbarContent
+          style={{
+            backgroundColor: MpgTheme.palette.primary.contrastText,
+            color: MpgTheme.palette.primary.dark
+          }}
+          message={<span id="message-id">{this.state.message}</span>}
+          action={[
+            <Button
+              key="undo"
+              color="inherit"
+              size="small"
+              onClick={this.handleCloseMessage}
+            >
+              Close
+            </Button>,
+            <IconButton
+              key="close"
+              aria-label="Close"
+              color="inherit"
+              onClick={this.handleCloseMessage}
+            ></IconButton>
+          ]}
+        />
+      </Snackbar>
     );
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -418,23 +444,32 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // go to Views
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToViews = async () => {
-    const viewCategoryId = this.mpgGraph.getViewCategoryId();
-    if (viewCategoryId !== undefined) {
-      await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
-      this.props.history.push("/ItemList");
-    } else {
-      this.handleFatalAppError(
-        "Unexpected error",
-        new MpgError(`MpgApp: goToViews: viewsCategoryId is undefined`)
-      );
-    }
+    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.View);
+    await this.mpgGraph.setListSearchState(ListSearchState.List);
+    this.props.history.push("/Search");
+    // const viewCategoryId = this.mpgGraph.getViewCategoryId();
+    // if (viewCategoryId !== undefined) {
+    //   // await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
+    //   await this.setState({
+    //     listSearchState: ListSearchState.List,
+    //     currentItemType: CurrentCategoryType.View
+    //   });
+    //   this.props.history.push("/Search");
+    // } else {
+    //   this.handleFatalAppError(
+    //     "Unexpected error",
+    //     new MpgError(`MpgApp: goToViews: viewsCategoryId is undefined`)
+    //   );
+    // }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // go to search
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  goToSearch = () => {
-    this.props.history.push('/Search')
-  }
+  goToSearch = async () => {
+    await this.mpgGraph.setListSearchState(ListSearchState.Search);
+    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.Entry);
+    this.props.history.push("/Search");
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render menu items
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -480,6 +515,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             </ListItemIcon>
             <ListItemText primary="New view" />
           </ListItem>
+          <ListItem button onClick={this.goToNewTag}>
+            <ListItemIcon>
+              <Icon>add</Icon>
+            </ListItemIcon>
+            <ListItemText primary="New tag" />
+          </ListItem>
           <Divider />
           <ListItem button onClick={this.goToSearch}>
             <ListItemIcon>
@@ -516,8 +557,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // show about message
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   showAboutMessage = () => {
-    this.showMessage(this.aboutMessage,6000)
-  }
+    this.showMessage(this.aboutMessage, 6000);
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle Signout
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -549,11 +590,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
           `MpgApp: goToEntry: entry category id is undefeined`
         );
       }
-    }else{
-      this.showMessage('Please signin first')
+    } else {
+      this.showMessage("Please signin first");
     }
   };
-   ///////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to new view
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToNewView = async () => {
@@ -568,47 +609,80 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
           `MpgApp: goToEntry: view category id is undefeined`
         );
       }
-    }else{
-      this.showMessage('Please signin first')
+    } else {
+      this.showMessage("Please signin first");
+    }
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // go to new tag
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  goToNewTag = async () => {
+    if (this.state.userSignedIn) {
+      const tagCategoryId = this.mpgGraph.getTagCategoryId();
+      if (tagCategoryId !== undefined) {
+        await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
+        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.props.history.push("/ItemDetails");
+      } else {
+        this.mpgLogger.unexpectedError(
+          `MpgApp: goToEntry: view category id is undefeined`
+        );
+      }
+    } else {
+      this.showMessage("Please signin first");
     }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToTags = async () => {
-    const tagCategoryId = this.mpgGraph.getTagCategoryId();
-    if (tagCategoryId !== undefined) {
-      await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-        this.props.history.push("/ItemList");
-      await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-    } else {
-      this.handleFatalAppError(
-        "Unexpected error",
-        new MpgError(`MpgApp: goToTags: tagCategoryId is undefined`)
-      );
-    }
+    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.Tag);
+    await this.mpgGraph.setListSearchState(ListSearchState.List);
+    this.props.history.push("/Search");
+    // const tagCategoryId = this.mpgGraph.getTagCategoryId();
+    // if (tagCategoryId !== undefined) {
+    //   await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
+    //   await this.setState({
+    //     listSearchState: ListSearchState.List,
+    //     currentItemType: CurrentCategoryType.Tag
+    //   });
+    //   this.props.history.push("/Search");
+    //   // await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
+    // } else {
+    //   this.handleFatalAppError(
+    //     "Unexpected error",
+    //     new MpgError(`MpgApp: goToTags: tagCategoryId is undefined`)
+    //   );
+    // }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goToEntries = async () => {
-    const entryCategoryId = this.mpgGraph.getEntryCategoryId();
-    if (entryCategoryId !== undefined) {
-      await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-      this.props.history.push("/ItemList");
-    } else {
-      this.handleFatalAppError(
-        "Unexpected error",
-        new MpgError(`MpgApp: goActions: entryCategoryId is undefined`)
-      );
-    }
+    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.Entry);
+    await this.mpgGraph.setListSearchState(ListSearchState.List);
+    this.props.history.push("/Search");
+    // const entryCategoryId = this.mpgGraph.getEntryCategoryId();
+    // if (entryCategoryId !== undefined) {
+    //   // await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
+    //   await this.setState({
+    //     listSearchState: ListSearchState.List,
+    //     currentItemType: CurrentCategoryType.Entry
+    //   });
+    //   this.props.history.push("/Search");
+    // } else {
+    //   this.handleFatalAppError(
+    //     "Unexpected error",
+    //     new MpgError(`MpgApp: goActions: entryCategoryId is undefined`)
+    //   );
+    // }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go home
   ///////////////////////////////////////////////////////////////////////////////////////////////
   goHome = () => {
     this.state.userSignedIn
-      ? this.props.history.push("/home")
+      ? this.props.history.push("/Home")
       : this.props.history.push("/landing");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -700,7 +774,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     allTags: MpgItem[],
     allEntries: MpgItem[],
     allViews: MpgItem[],
+    currentItemType: CurrentCategoryType,
+    listSearchState: ListSearchState
   ) => {
+    // console.log('MpgApp: dataRefreshed: currentItemType: ',currentItemType);
     this.allCategories = allCategories;
     this.filteredItems = filteredAllItems;
     this.currentCategoryId = currentCategoryId;
@@ -708,16 +785,25 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     this.displayMode = displayMode;
     this.allTags = allTags;
     this.allEntries = allEntries;
-    this.allViews = allViews
+    this.allViews = allViews;
     // set state for variables that affect rendering of this component
     await this.setState({
       appError: error,
-      appErrorState: unexpectedError
+      appErrorState: unexpectedError,
+      currentItemType: currentItemType,
+      listSearchState: listSearchState
     });
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // utility methods
   ///////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // component did catch
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  componentDidCatch = (err: Error, info: any) => {
+    const error = new MpgError(err.message + "\n" + info);
+    this.setState({ appError: error, appErrorState: true });
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // show message
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -747,7 +833,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // update desktop setting
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   updateSize = () => {
-    this.windowWidth = window.innerWidth
+    this.windowWidth = window.innerWidth;
     // console.log('MpgApp: window width:', this.windowWidth );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

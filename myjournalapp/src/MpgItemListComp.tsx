@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item List component
-// displays list of items withion other components
+// displays list of items within other components
 ///////////////////////////////////////////////////////////////////////////////////////////////
 import * as React from "react";
 import {
@@ -13,18 +13,18 @@ import {
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
-import MpgGraph from "./MpgGraph";
+import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
+import { withRouter, RouteComponentProps } from "react-router-dom";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
-interface IItemListProps {
+interface IItemListProps extends RouteComponentProps{
   toggleSidebarVisibility: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void;
   mpgGraph: MpgGraph;
   mpgLogger: MpgLogger;
   itemList: MpgItem[];
-  handleTagUpdate: Function;
 }
 interface IItemListState {
   itemList: MpgItem[];
@@ -32,7 +32,7 @@ interface IItemListState {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item List component class
 ///////////////////////////////////////////////////////////////////////////////////////////////
-export default class MpgItemListComp extends React.Component<
+class MpgItemListCompBase extends React.Component<
   IItemListProps,
   IItemListState
 > {
@@ -52,7 +52,7 @@ export default class MpgItemListComp extends React.Component<
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-start",
-          margin: 5
+          margin: 0
         }}
       >
         {this.state.itemList.map(item => this.renderItemCard(item))}
@@ -67,9 +67,11 @@ export default class MpgItemListComp extends React.Component<
       <Card
         key={item.getId()}
         elevation={1}
-        style={{ textAlign: "left", margin: 3 }}
+        style={{ textAlign: "left", margin: 5 }}
       >
-        <CardActionArea>
+        <CardActionArea 
+          onClick={event=>this.handleItemUpdate(event, item)}
+          >
           <div style={{ textAlign: "left", padding: 10 }}>
             <Typography
               style={{
@@ -88,9 +90,9 @@ export default class MpgItemListComp extends React.Component<
               Priority: {item.getNetPriority()} ({item.getPriority()})
             </Typography>
             {this.renderRelatedTags(item)}
-            {this.renderActionIcons(item)}
           </div>
         </CardActionArea>
+        {this.renderActionIcons(item)}
       </Card>
     );
   };
@@ -145,7 +147,7 @@ export default class MpgItemListComp extends React.Component<
         style={{
           display: "flex",
           justifyContent: "space-between",
-          paddingTop: "5px"
+          padding: "5px"
         }}
       >
         <Icon
@@ -162,6 +164,15 @@ export default class MpgItemListComp extends React.Component<
         </Icon>
       </div>
     );
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle update item (any item)
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleItemUpdate = async (evet: any,tag: MpgItem) => {
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+    await this.props.mpgGraph.setCurrentCategoryId(tag.getCategoryId());
+    await this.props.mpgGraph.setCurrentItemId(tag.getId());
+    await this.props.history.push("/ItemDetails");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle delete icon clicked
@@ -186,9 +197,9 @@ export default class MpgItemListComp extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update tag for item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleItemUpdate = async (event: React.MouseEvent, item: MpgItem) => {
-    this.props.handleTagUpdate(item);
-  };
+  // handleItemUpdate = async (event: React.MouseEvent, item: MpgItem) => {
+  //   this.props.handleTagUpdate(item);
+  // };
   //////////////////////////////////////////////////////////////////////////////////////////////
   // component will receive props
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,3 +209,8 @@ export default class MpgItemListComp extends React.Component<
     });
   }
 }
+///////////////////////////////////////////////////////////////////////////////////////////////
+// wrap the component withRouter
+///////////////////////////////////////////////////////////////////////////////////////////////
+const MpgItemListComp = withRouter(MpgItemListCompBase);
+export default MpgItemListComp;

@@ -1,37 +1,31 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MpgSearch component module
+// MpgListSearch component module
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 import * as React from "react";
 import { RouteComponentProps, withRouter } from "react-router";
 import MpgAppBar from "./MpgAppBar";
 import {
   Card,
-  Typography,
   TextField,
   Select,
   MenuItem,
   List,
   ListItem,
   ListItemText,
-  Chip
+  Chip,
+  Icon,
+  Typography
 } from "@material-ui/core";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
 import MpgItemListComp from "./MpgItemListComp";
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// define enum for search item type
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-enum SearchItemType {
-  Entries = "Entries",
-  Tags = "Tags",
-  Views = "Views"
-}
+import { ListSearchState, CurrentCategoryType } from "./MpgGraph";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
-interface ISearchProps extends RouteComponentProps {
+interface ListISearchProps extends RouteComponentProps {
   toggleSidebarVisibility: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void;
@@ -44,49 +38,57 @@ interface ISearchProps extends RouteComponentProps {
   windowWidth: number;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   allViews: MpgItem[];
+  listSearchState: ListSearchState;
+  currentItemType: CurrentCategoryType
 }
-interface ISearchState {
+interface IListSearchState {
   tagSearchText: string;
   tagListVisible: boolean;
-  entryListVisible: boolean;
+  // entryListVisible: boolean;
   matchedTags: MpgItem[];
   existingTags: MpgItem[];
   deleteInProgress: boolean;
   windowWidth: number;
   nameSearchText: string;
-  searchItemType: SearchItemType;
+  currentItemType: CurrentCategoryType;
   itemsToSearch: MpgItem[];
   allTags: MpgItem[];
   allEntries: MpgItem[];
   allViews: MpgItem[];
   matchedItems: MpgItem[];
+  listSearchState: ListSearchState;
+  items2Show: MpgItem[]
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MpgSearch class
+// MpgListSearch class
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
+class MpgListSearchBase extends React.Component<
+  ListISearchProps,
+  IListSearchState
+> {
   private itemsWithText: MpgItem[] = [];
   private itemsWithTags: MpgItem[] = [];
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  constructor(props: ISearchProps) {
+  constructor(props: ListISearchProps) {
     super(props);
     this.state = {
       tagSearchText: "",
       tagListVisible: false,
       matchedTags: [],
       existingTags: [],
-      entryListVisible: false,
       deleteInProgress: false,
       windowWidth: props.windowWidth,
       nameSearchText: "",
-      searchItemType: SearchItemType.Entries,
+      currentItemType: props.currentItemType,
       itemsToSearch: this.props.allEntries,
       allEntries: this.props.allEntries,
       allTags: this.props.allTags,
       allViews: this.props.allViews,
-      matchedItems: []
+      matchedItems: [],
+      listSearchState: props.listSearchState,
+      items2Show: []
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +112,7 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
           }}
         >
           {this.renderSearchPanel()}
+          {/* {this.renderEntryList()} */}
         </div>
       </div>
     );
@@ -137,25 +140,25 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
           }}
         >
           <Select
-            value={this.state.searchItemType}
+            value={this.state.currentItemType}
             onChange={this.handleSearchItemTypeChange}
             inputProps={{
               name: "Search for",
               id: "searchIemType"
             }}
             style={{
-              fontSize: "16px",
+              fontSize: "21px",
               fontWeight: "bold",
               color: MpgTheme.palette.primary.contrastText
             }}
           >
-            <MenuItem value={"Entries"}>Search for Entries</MenuItem>
-            <MenuItem value={"Tags"}>Search for Tags</MenuItem>
-            <MenuItem value={"Views"}>Serach for Views</MenuItem>
+            <MenuItem value={"Entry"}>Entries</MenuItem>
+            <MenuItem value={"Tag"}>Tags</MenuItem>
+            <MenuItem value={"View"}>Views</MenuItem>
           </Select>
         </div>
-        {this.renderSearchParams()}
-        {this.state.entryListVisible ? this.renderEntryList() : <div />}
+        {this.renderSearchParamsWithSwitch()}
+        {this.renderEntryList()}
       </Card>
     );
   };
@@ -163,30 +166,77 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
   // handle search item type change
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   handleSearchItemTypeChange = async (event: any) => {
-    await this.setState({ searchItemType: event.target.value });
-    await this.setItems2Search();
+    const type = event.target.value
+    // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
+    await this.props.mpgGraph.setCurrentItemType(type)
+    // await this.setState({currentItemType: type})
+    // await this.setItems2Show()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle search item type change
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setItems2Search = async () => {
-    if (this.state.searchItemType === SearchItemType.Entries) {
-      this.setState({ itemsToSearch: this.props.allEntries });
-    } else {
-      if (this.state.searchItemType === SearchItemType.Tags) {
-        this.setState({ itemsToSearch: this.props.allTags });
-      } else {
-        if (this.state.searchItemType === SearchItemType.Views) {
-          this.setState({ itemsToSearch: this.props.allViews });
-        }
-      }
+    switch (this.state.currentItemType) {
+      case CurrentCategoryType.Entry:
+        await this.setState({ itemsToSearch: this.state.allEntries });
+        break;
+      case CurrentCategoryType.View:
+        await this.setState({ itemsToSearch: this.state.allViews });
+        break;
+      case CurrentCategoryType.Tag:
+        await this.setState({ itemsToSearch: this.state.allTags });
+        break;
     }
-    this.setMatchedIItemsWithText();
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set search item type from current category
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setSearcItemType = () => {
+    if (this.props.mpgGraph.isCurrentcategoryEntry()) {
+      this.setState({ currentItemType: CurrentCategoryType.Entry });
+    }
+    if (this.props.mpgGraph.isCurrentCategoryView()) {
+      this.setState({ currentItemType: CurrentCategoryType.View });
+    }
+    if (this.props.mpgGraph.isCurrentCategoryTag()) {
+      this.setState({ currentItemType: CurrentCategoryType.Tag });
+    }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render search params
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   renderSearchParams = () => {
+    return (
+      <div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            margin: 5
+          }}
+        >
+          <TextField
+            id="nameSearchText"
+            label="Search text"
+            value={this.state.nameSearchText}
+            margin="normal"
+            style={{ marginLeft: 5, marginRight: 5, width: "95%" }}
+            onChange={this.handleNameSearchTextChange}
+            autoFocus={true}
+            autoComplete="off"
+          />
+        </div>
+        {this.renderSearch4Tags()}
+        {this.state.tagListVisible ? this.renderSearchTagList() : <div />}
+        {this.renderExistingTags()}
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render search params with switch
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderSearchParamsWithSwitch = () => {
     return (
       <div>
         <Card
@@ -195,28 +245,12 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
             margin: 5
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-              margin: 5
-            }}
-          >
-            <TextField
-              id="nameSearchText"
-              label="Search text"
-              value={this.state.nameSearchText}
-              margin="normal"
-              style={{ marginLeft: 5, marginRight: 5, width: "95%" }}
-              onChange={this.handleNameSearchTextChange}
-              autoFocus={true}
-              autoComplete="off"
-            />
-          </div>
-          {this.renderSearch4Tags()}
-          {this.state.tagListVisible ? this.renderSearchTagList() : <div />}
-          {this.renderExistingTags()}
+          {this.renderListSearchIcons()}
+          {this.state.listSearchState === ListSearchState.Search ? (
+            this.renderSearchParams()
+          ) : (
+            <div />
+          )}
         </Card>
       </div>
     );
@@ -266,7 +300,8 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
       aTag => aTag.getId() !== tag.getId()
     );
     await this.setState({ existingTags: tags });
-    this.setMatchedItems();
+    // this.setMatchedItems();
+    this.setItems2Show()
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // set matched tags
@@ -294,7 +329,7 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleTagSearchTextChange = async (event: React.ChangeEvent) => {
     const tagSearchText = (event.target as HTMLInputElement).value;
-    // this.props.mpgLogger.debug("ItemDetails: handleTagSearchTextChange: searchText:",tagSearchText)
+    await this.setState({items2Show: this.state.matchedItems})
     if (tagSearchText.length > 0) {
       await this.setState({
         tagSearchText: tagSearchText,
@@ -309,7 +344,7 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
     }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render search tag lisy
+  // render search tag list
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   renderSearchTagList = () => {
     return (
@@ -337,35 +372,86 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
       tagListVisible: false,
       tagSearchText: ""
     });
-    this.setMatchedItems();
+    // this.setMatchedItems();
+    this.setItems2Show()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render entry list
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   renderEntryList = () => {
+    // let itemsToShow: MpgItem[] = [];
+    // switch (this.state.listSearchState) {
+    //   case ListSearchState.List:
+    //     itemsToShow = this.state.itemsToSearch;
+    //     break;
+    //   case ListSearchState.Search:
+    //     itemsToShow = this.state.matchedItems;
+    //     break;
+    // }
     return (
       <div>
-        <Typography
-          style={{
-            fontSize: "14px",
-            fontWeight: "bold",
-            color: MpgTheme.palette.primary.contrastText
-          }}
-          align="center"
+        <MpgItemListComp
+          itemList={this.state.items2Show}
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          mpgGraph={this.props.mpgGraph}
+          mpgLogger={this.props.mpgLogger}
+        />
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render list/ serach icons
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderListSearchIcons = () => {
+    let listIconColor = "";
+    let searchIconColor = "";
+    let panelTitle = "";
+    switch (this.state.listSearchState) {
+      case ListSearchState.List:
+        searchIconColor = MpgTheme.palette.secondary.dark;
+        listIconColor = MpgTheme.palette.primary.dark;
+        panelTitle = "List";
+        break;
+      case ListSearchState.Search:
+        listIconColor = MpgTheme.palette.secondary.dark;
+        searchIconColor = MpgTheme.palette.primary.dark;
+        panelTitle = "Seach";
+        break;
+    }
+    // let listIconColor =
+    //   this.state.listSearchState === ListSearchState.List
+    //     ? MpgTheme.palette.secondary.dark
+    //     : MpgTheme.palette.primary.dark;
+    // let SearchIconColor =
+    //   this.state.listSearchState === ListSearchState.Search
+    //     ? MpgTheme.palette.secondary.dark
+    //     : MpgTheme.palette.primary.dark;
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "5px"
+        }}
+      >
+        <Icon
+          style={{ fontSize: "20px", color: listIconColor }}
+          onClick={event=>this.props.mpgGraph.setListSearchState(ListSearchState.List)}
         >
-          Matched entries
+          view_headline
+        </Icon>
+        <Typography
+          variant="body1"
+          style={{ color: MpgTheme.palette.primary.dark }}
+        >
+          {panelTitle}
         </Typography>
-        {this.state.entryListVisible ? (
-          <MpgItemListComp
-            itemList={this.state.matchedItems}
-            toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-            mpgGraph={this.props.mpgGraph}
-            mpgLogger={this.props.mpgLogger}
-            handleTagUpdate={this.handleUpdateItem}
-          />
-        ) : (
-          <div />
-        )}
+        <Icon
+          style={{ fontSize: "20px", color: searchIconColor }}
+          onClick={event=>this.props.mpgGraph.setListSearchState(ListSearchState.Search)}
+        >
+          search
+        </Icon>
       </div>
     );
   };
@@ -376,29 +462,46 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
     const nameSearchText = (event.target as HTMLInputElement).value;
     if (nameSearchText.length > 0) {
       await this.setState({
-        nameSearchText: nameSearchText,
-        entryListVisible: true
+        nameSearchText: nameSearchText
       });
-      await this.setMatchedItems();
+      // await this.setMatchedItems();
     } else {
       await this.setState({
-        nameSearchText: nameSearchText,
-        entryListVisible: false
+        nameSearchText: nameSearchText
       });
     }
+    // await this.setMatchedItems();
+    this.setItems2Show()
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will receive props
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  componentWillReceiveProps = async (newProps: ISearchProps) => {
+  componentWillReceiveProps = async (newProps: ListISearchProps) => {
     await this.setState({
       allEntries: newProps.allEntries,
       allTags: newProps.allTags,
-      allViews: newProps.allViews
+      allViews: newProps.allViews,
+      listSearchState: newProps.listSearchState,
+      currentItemType: newProps.currentItemType,
     });
-    await this.setItems2Search();
-    this.setMatchedItems();
+    // console.log('MpgListSearch: componentWillReceiveProps: newProps:',newProps);
+    await this.setItems2Show()
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set items to show
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setItems2Show = async () =>{
+    await this.setItems2Search();
+    switch (this.state.listSearchState) {
+      case ListSearchState.List:
+        await this.setState({items2Show: this.state.itemsToSearch})
+        break;
+      case ListSearchState.Search:
+        await this.setMatchedItems();
+        await this.setState({items2Show: this.state.matchedItems})
+        break;
+    }
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update item (any item)
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,7 +515,6 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
   // set matched entries by text and tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setMatchedItems = async () => {
-    this.setItems2Search();
     let foundItems: MpgItem[] = [];
     if (this.state.existingTags.length > 0) {
       this.setMatchedItemByTags();
@@ -432,19 +534,20 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
         foundItems = this.itemsWithText;
       }
     }
-    this.setState({ matchedItems: foundItems, entryListVisible: true });
+    this.setState({ matchedItems: foundItems });
+    // console.log('MpgListSearch: setMatchedItems: foundItems',foundItems);
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set matched items by tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setMatchedItemByTags = () => {
     let matchedItems: MpgItem[] = [];
-    if (this.state.searchItemType === SearchItemType.Tags) {
-        matchedItems = this.props.mpgGraph.getTagssWithAllTags(
-            this.state.existingTags
-          );
+    if (this.state.currentItemType === CurrentCategoryType.Tag) {
+      matchedItems = this.props.mpgGraph.getTagssWithAllTags(
+        this.state.existingTags
+      );
     } else {
-      if (this.state.searchItemType === SearchItemType.Entries) {
+      if (this.state.currentItemType === CurrentCategoryType.Entry) {
         matchedItems = this.props.mpgGraph.getEntriesWithAllTags(
           this.state.existingTags
         );
@@ -480,14 +583,22 @@ class MpgSearchBase extends React.Component<ISearchProps, ISearchState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  componentWillMount = () => {
+  componentWillMount = async () => {
     if (!this.props.userSignedIn) {
       this.props.history.push("/Landing");
+    } else {
+      await this.setItems2Show()
     }
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // component did mount
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  componentDidMount = async () => {
+    // await this.setListSearchParam()
   };
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // wrap the component withRouter
 ///////////////////////////////////////////////////////////////////////////////////////////////
-const MpgSearch = withRouter(MpgSearchBase);
-export default MpgSearch;
+const MpgListSearch = withRouter(MpgListSearchBase);
+export default MpgListSearch;

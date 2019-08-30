@@ -16,13 +16,14 @@ import {
   ListItemText,
   Chip,
   Divider,
-  CardActionArea,
+  CardActionArea
 } from "@material-ui/core";
 import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgCategory from "./MpgCategory";
 import MpgTheme from "./MpgTheme";
+import MpgItemListComp from "./MpgItemListComp";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +44,7 @@ interface IItemDetailsProps extends RouteComponentProps {
   allCategories: MpgCategory[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   primaryColor: string;
-  windowWidth: number
+  windowWidth: number;
 }
 interface IItemDetailsState {
   currentCategoryId: string;
@@ -74,8 +75,7 @@ interface IItemDetailsState {
   itemDataChanged: boolean;
   screenTitle: string;
   deleteInProgress: boolean;
-  windowWidth: number
-  
+  windowWidth: number;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item Details class
@@ -140,7 +140,7 @@ class MpgItemDetailsBase extends React.Component<
       deleteInProgress: false,
       existingParentTags: existingParentTags,
       itemNetPriority: itemNetPriority,
-      windowWidth: props.windowWidth,
+      windowWidth: props.windowWidth
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +160,7 @@ class MpgItemDetailsBase extends React.Component<
             display: "flex",
             justifyContent: "space-around",
             flexWrap: "wrap",
-            textAlign: "center",
+            textAlign: "center"
           }}
         >
           {this.renderItemDetails()}
@@ -172,12 +172,8 @@ class MpgItemDetailsBase extends React.Component<
   // goback
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   goBack = async () => {
-    // console.log('props.history:',this.props.history,'location.pathname:',
-      // this.props.history.location.pathname);
-    this.props.history.goBack();
-    // sometimes goBack doesn't work consistently
-    // we implement this as go to list
-    // this.props.history.push("/ItemList");
+    // this.props.history.push("/Search");
+    this.props.history.goBack()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // renderItemTags
@@ -209,12 +205,15 @@ class MpgItemDetailsBase extends React.Component<
   renderItemDetails = () => {
     let saveIconColor = this.state.itemDataChanged
       ? MpgTheme.palette.secondary.dark
-      : MpgTheme.palette.primary.dark
-    const cardWidth = (window.innerWidth > 500)? 500 : window.innerWidth
+      : MpgTheme.palette.primary.dark;
+    const cardWidth = window.innerWidth > 500 ? 500 : window.innerWidth;
     return (
       <Card
         elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10,
+        style={{
+          maxWidth: cardWidth,
+          minWidth: cardWidth,
+          margin: 5,
           backgroundColor: MpgTheme.palette.primary.light
         }}
       >
@@ -225,79 +224,82 @@ class MpgItemDetailsBase extends React.Component<
               justifyContent: "space-between",
               justifyItems: "center",
               // backgroundColor: this.props.primaryColor,
-              margin: 5
+              margin: 0
             }}
           >
-             <Icon
-          onClick={this.goBack}
-          style={{ margin: 5, color: this.props.primaryColor, fontSize: 18 }}
-           >
-          keyboard_backspace
+            <Icon
+              onClick={this.goBack}
+              style={{
+                margin: 5,
+                color: this.props.primaryColor,
+                fontSize: 18
+              }}
+            >
+              keyboard_backspace
             </Icon>
-            <Typography variant="h6" style={{color: MpgTheme.palette.primary.dark}}>
+            <Typography
+              variant="h5"
+              style={{ color: MpgTheme.palette.primary.contrastText }}
+            >
               {this.state.screenTitle}
             </Typography>
             <Icon
-          onClick={this.handleSave}
-          style={{ margin: 5, color: saveIconColor, fontSize: 18 }}
-        >
-          save
-        </Icon>
+              onClick={this.handleSave}
+              style={{ margin: 5, color: saveIconColor, fontSize: 18 }}
+            >
+              save
+            </Icon>
           </div>
           <Card>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-              margin: 5
-            }}
-          >
-            <TextField
-              id="itemName"
-              label="Name"
-              value={this.state.itemName}
-              margin="normal"
-              style={{ marginLeft: 10, marginRight: 10, width: "95%" }}
-              onChange={this.handleItemNameChange}
-              onKeyPress={this.handleKeyPressed}
-              autoFocus={true}
-              onBlur={this.saveCurrentItem}
-            />
-            <div style={{ display: "flex" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-start",
+                margin: 10
+              }}
+            >
               <TextField
-                id="itemPriority"
-                label="Priority"
-                value={this.state.itemPriority}
+                id="itemName"
+                label="Name"
+                value={this.state.itemName}
                 margin="normal"
-                style={{ marginLeft: 10, width: "10%" }}
-                onChange={this.handleItemPriorityChange}
+                style={{ marginLeft: 10, marginRight: 10, width: "95%" }}
+                onChange={this.handleItemNameChange}
                 onKeyPress={this.handleKeyPressed}
+                autoFocus={true}
                 onBlur={this.saveCurrentItem}
               />
-              <TextField
-                id="itemNetPriority"
-                label="Net priority"
-                value={this.state.itemNetPriority}
-                margin="normal"
-                style={{ marginLeft: 40, width: "30%" }}
-                InputProps={{
-                  readOnly: true
-                }}
-              />
+              <div style={{ display: "flex" }}>
+                <TextField
+                  id="itemPriority"
+                  label="Priority"
+                  value={this.state.itemPriority}
+                  margin="normal"
+                  style={{ marginLeft: 10, width: "10%" }}
+                  onChange={this.handleItemPriorityChange}
+                  onKeyPress={this.handleKeyPressed}
+                  onBlur={this.saveCurrentItem}
+                />
+                <TextField
+                  id="itemNetPriority"
+                  label="Net priority"
+                  value={this.state.itemNetPriority}
+                  margin="normal"
+                  style={{ marginLeft: 40, width: "30%" }}
+                  InputProps={{
+                    readOnly: true
+                  }}
+                />
+              </div>
             </div>
-            </div>
-            </Card>
-            {/* <Divider /> */}
-            {this.showAddParentTags() ? this.renderAddParentTags() : <div />}
-            {this.showAddTags() ? this.renderAddTags() : <div />}
-            {this.showEntriesWithTags() ? (
-              this.renderEntriesWithTags()
-            ) : (
-              <div />
-            )}
-            {this.showAddEntry() ? this.renderAddEntry() : <div />}
-            {/*{this.showRelatedEntries()? this.renderRelatedItems(): <div />} */}
+          </Card>
+          {/* <Divider /> */}
+          {this.showAddParentTags() ? this.renderAddParentTags() : <div />}
+          {this.showAddTags() ? this.renderAddTags() : <div />}
+          {this.showAddEntry() ? this.renderAddEntry() : <div />}
+          {this.showEntriesWithTags() ? this.renderEntriesWithTags() : <div />}
+          {/*{this.showRelatedEntries()? this.renderRelatedItems(): <div />} */}
           {/* </div> */}
         </CardContent>
       </Card>
@@ -307,9 +309,9 @@ class MpgItemDetailsBase extends React.Component<
   // save and close
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   saveAndClose = async () => {
-    await this.saveCurrentItem()
-    await this.goBack()
-  }
+    await this.saveCurrentItem();
+    await this.goBack();
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // showEntriesWithTags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -339,7 +341,7 @@ class MpgItemDetailsBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render entries with tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderEntriesWithTags = () => {
+  renderEntriesWithTagsOLD = () => {
     // const cardWidth = (window.innerWidth > 500)? 480 : window.innerWidth
     // const theme = createMuiTheme();
     // const background = theme.palette.background
@@ -348,12 +350,15 @@ class MpgItemDetailsBase extends React.Component<
         style={{
           display: "flex",
           justifyContent: "space-around",
-          flexDirection: 'column',
+          flexDirection: "column"
         }}
       >
         <Typography
-          style={{ fontSize: "14px", fontWeight: "bold", color: MpgTheme.palette.primary.dark,
-         }}
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.dark
+          }}
         >
           Items with tags
         </Typography>
@@ -384,20 +389,24 @@ class MpgItemDetailsBase extends React.Component<
                   >
                     Tags: {this.props.mpgGraph.getTagNames(item)}
                   </Typography> */}
-              <div style={{ display: "flex", flexWrap: "wrap" }}>
-            {item.getTags().map(tag => (
-              <Chip
-                key={tag.getId()}
-                label={tag.getName()}
-                color="primary"
-                onDelete={event => this.handleTagDelete4Item(event, item, tag)}
-                onClick={event => this.handleTagUpdate4Item(event, item, tag)}
-                variant="outlined"
-                style={{ margin: "1px", fontSize:'8px' }}
-                size='small'
-              />
-            ))}
-          </div>
+                <div style={{ display: "flex", flexWrap: "wrap" }}>
+                  {item.getTags().map(tag => (
+                    <Chip
+                      key={tag.getId()}
+                      label={tag.getName()}
+                      color="primary"
+                      onDelete={event =>
+                        this.handleTagDelete4Item(event, item, tag)
+                      }
+                      onClick={event =>
+                        this.handleTagUpdate4Item(event, item, tag)
+                      }
+                      variant="outlined"
+                      style={{ margin: "1px", fontSize: "8px" }}
+                      size="small"
+                    />
+                  ))}
+                </div>
                 {true ? (
                   <div
                     style={{
@@ -407,7 +416,10 @@ class MpgItemDetailsBase extends React.Component<
                     }}
                   >
                     <Icon
-                      style={{ fontSize: "20px", color: MpgTheme.palette.primary.main }}
+                      style={{
+                        fontSize: "20px",
+                        color: MpgTheme.palette.primary.main
+                      }}
                       onClick={event =>
                         this.handleItemWithTagsUpdate(event, item.getId())
                       }
@@ -415,7 +427,10 @@ class MpgItemDetailsBase extends React.Component<
                       edit
                     </Icon>
                     <Icon
-                      style={{ fontSize: "20px", color: MpgTheme.palette.primary.main }}
+                      style={{
+                        fontSize: "20px",
+                        color: MpgTheme.palette.primary.main
+                      }}
                       onClick={event =>
                         this.handleDeleteRelatedItem(event, item.getId())
                       }
@@ -435,18 +450,51 @@ class MpgItemDetailsBase extends React.Component<
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render entries with tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderEntriesWithTags = () => {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-around",
+          flexDirection: "column",
+          margin: 0
+        }}
+      >
+        <Typography
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.dark
+          }}
+        >
+          Items with tags
+        </Typography>
+        <MpgItemListComp
+          itemList={this.state.itemsWithTags}
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          mpgGraph={this.props.mpgGraph}
+          mpgLogger={this.props.mpgLogger}
+        />
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get tags for item
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getTagsForItem = (id: string): MpgItem[] => {
-    let foundTags: MpgItem[] = []
-    let item = this.props.mpgGraph.getItemById(id)
-    if(item !== undefined){
-      foundTags = item.getTags()
-    }else{
-      this.props.mpgLogger.unexpectedError('MpgItemDetails: getTagsForItem: undefined item for id:'+id)
+    let foundTags: MpgItem[] = [];
+    let item = this.props.mpgGraph.getItemById(id);
+    if (item !== undefined) {
+      foundTags = item.getTags();
+    } else {
+      this.props.mpgLogger.unexpectedError(
+        "MpgItemDetails: getTagsForItem: undefined item for id:" + id
+      );
     }
-    return foundTags
-  }
+    return foundTags;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render action area
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -517,7 +565,8 @@ class MpgItemDetailsBase extends React.Component<
   handleSave = async () => {
     await this.saveCurrentItem();
     // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.List)
-    this.props.history.goBack();
+    // this.props.history.goBack();
+    this.goBack();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle cancel
@@ -538,47 +587,55 @@ class MpgItemDetailsBase extends React.Component<
           justifyContent: "flex-start"
         }}
       >
-        <Typography color="textPrimary" 
-        style={{ fontSize: "14px", fontWeight: "bold", color: MpgTheme.palette.primary.dark}}>
+        <Typography
+          color="textPrimary"
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.contrastText
+          }}
+        >
           Add or create entries
         </Typography>
         <Card>
-        <TextField
-          id="action"
-          label="Search or add item"
-          value={this.state.entrySearchText}
-          margin="normal"
-          style={{ marginLeft: 10, width: "100%" }}
-          onChange={this.handleEntrySearchTextChange}
-          autoComplete="off"
-        />
-        {this.state.entryListVisible ? (
-          <List>
-            {this.state.matchedEntries.map(action => (
+          <TextField
+            id="action"
+            label="Search or add item"
+            value={this.state.entrySearchText}
+            margin="normal"
+            style={{ marginLeft: 10, width: "100%" }}
+            onChange={this.handleEntrySearchTextChange}
+            autoComplete="off"
+          />
+          {this.state.entryListVisible ? (
+            <List>
+              {this.state.matchedEntries.map(action => (
+                <ListItem
+                  key={action.getId()}
+                  button
+                  onClick={event =>
+                    this.handleItemClicked(event, action.getId())
+                  }
+                >
+                  <ListItemText primary={action.getName()} />
+                </ListItem>
+              ))}
+              <Divider />
               <ListItem
-                key={action.getId()}
+                key={this.addNewEntryId}
                 button
-                onClick={event => this.handleItemClicked(event, action.getId())}
+                onClick={event =>
+                  this.handleItemClicked(event, this.addNewEntryId)
+                }
               >
-                <ListItemText primary={action.getName()} />
+                <ListItemText
+                  primary={"Add new item: " + this.state.entrySearchText}
+                />
               </ListItem>
-            ))}
-            <Divider />
-            <ListItem
-              key={this.addNewEntryId}
-              button
-              onClick={event =>
-                this.handleItemClicked(event, this.addNewEntryId)
-              }
-            >
-              <ListItemText
-                primary={"Add new item: " + this.state.entrySearchText}
-              />
-            </ListItem>
-          </List>
-        ) : (
-          <div />
-        )}
+            </List>
+          ) : (
+            <div />
+          )}
         </Card>
       </div>
     );
@@ -590,68 +647,74 @@ class MpgItemDetailsBase extends React.Component<
     return (
       <div>
         <Typography
-          style={{ fontSize: "14px", fontWeight: "bold", color: MpgTheme.palette.primary.dark}}
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.contrastText
+          }}
           align="center"
         >
-         Tags
+          Tags
         </Typography>
-      <Card>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start"
-        }}
-      >
-        <TextField
-          id="tag"
-          label="Search for tags"
-          value={this.state.tagSearchText}
-          margin="normal"
-          style={{ marginLeft: 10, width: "50%" }}
-          onChange={this.handleTagSearchTextChange}
-          autoComplete="off"
-        />
-        {this.state.tagListVisible ? (
-          <List>
-            {this.state.matchedTags.map(tag => (
-              <ListItem
-                key={tag.getId()}
-                button
-                onClick={event => this.handleAddNewTag(event, tag.getId())}
-              >
-                <ListItemText primary={tag.getName()} />
-              </ListItem>
-            ))}
-            <Divider />
-            <ListItem
-              key={this.addNewTagId}
-              button
-              onClick={event => this.handleAddNewTag(event, this.addNewTagId)}
-            >
-              <ListItemText
-                primary={"Add new tag: " + this.state.tagSearchText}
-              />
-            </ListItem>
-          </List>
-        ) : (
-          <div />
-        )}
-        <div style={{ display: "flex", flexWrap: "wrap" }}>
-          {this.state.existingTags.map(tag => (
-            <Chip
-              key={tag.getId()}
-              label={tag.getName()}
-              color="primary"
-              onDelete={event => this.handleTagDelete(event, tag.getId())}
-              onClick={event => this.handleTagUpdate(event, tag.getId())}
-              variant="outlined"
-              style={{ margin: "5px" }}
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start"
+            }}
+          >
+            <TextField
+              id="tag"
+              label="Search for tags"
+              value={this.state.tagSearchText}
+              margin="normal"
+              style={{ marginLeft: 10, width: "50%" }}
+              onChange={this.handleTagSearchTextChange}
+              autoComplete="off"
             />
-          ))}
-        </div>
-      </div>
-      </Card>
+            {this.state.tagListVisible ? (
+              <List>
+                {this.state.matchedTags.map(tag => (
+                  <ListItem
+                    key={tag.getId()}
+                    button
+                    onClick={event => this.handleAddNewTag(event, tag.getId())}
+                  >
+                    <ListItemText primary={tag.getName()} />
+                  </ListItem>
+                ))}
+                <Divider />
+                <ListItem
+                  key={this.addNewTagId}
+                  button
+                  onClick={event =>
+                    this.handleAddNewTag(event, this.addNewTagId)
+                  }
+                >
+                  <ListItemText
+                    primary={"Add new tag: " + this.state.tagSearchText}
+                  />
+                </ListItem>
+              </List>
+            ) : (
+              <div />
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {this.state.existingTags.map(tag => (
+                <Chip
+                  key={tag.getId()}
+                  label={tag.getName()}
+                  color="primary"
+                  onDelete={event => this.handleTagDelete(event, tag.getId())}
+                  onClick={event => this.handleTagUpdate(event, tag.getId())}
+                  variant="outlined"
+                  style={{ margin: "5px" }}
+                />
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     );
   };
@@ -661,73 +724,82 @@ class MpgItemDetailsBase extends React.Component<
   renderAddParentTags = () => {
     return (
       <div>
-      <Typography color="textPrimary" 
-      style={{ fontSize: "14px", fontWeight: "bold", color: MpgTheme.palette.primary.dark,
-        }}>
-        Add or create parent tags
-      </Typography>
-        <Card>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start"
-        }}
-      >
-        <Typography variant="body1" color="textPrimary">
-          {/* {this.getTagFullName(this.state.currentItemId)} */}
+        <Typography
+          color="textPrimary"
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.dark
+          }}
+        >
+          Add or create parent tags
         </Typography>
-        <TextField
-          id="tag"
-          label="Search for tags"
-          value={this.state.tagSearchText}
-          margin="normal"
-          style={{ marginLeft: 10, width: "50%" }}
-          onChange={this.handleTagSearchTextChange}
-          autoComplete="off"
-        />
-        {this.state.tagListVisible ? (
-          <List>
-            {this.state.matchedTags.map(tag => (
-              <ListItem
-                key={tag.getId()}
-                button
-                onClick={event => this.handleAddParentTag(event, tag.getId())}
-              >
-                <ListItemText primary={tag.getName()} />
-              </ListItem>
-            ))}
-            <Divider />
-            <ListItem
-              key={this.addNewTagId}
-              button
-              onClick={event =>
-                this.handleAddParentTag(event, this.addNewTagId)
-              }
-            >
-              <ListItemText
-                primary={"Add new tag: " + this.state.tagSearchText}
-              />
-            </ListItem>
-          </List>
-        ) : (
-          <div />
-        )}
-        <div style={{ display: "flex", flexWrap: "wrap" }}>
-          {this.state.existingParentTags.map(tag => (
-            <Chip
-              key={tag.getId()}
-              label={tag.getName()}
-              color="primary"
-              onDelete={event => this.handleParentTagDelete(event, tag.getId())}
-              onClick={event => this.handleTagUpdate(event, tag.getId())}
-              variant="outlined"
-              style={{ margin: "5px" }}
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start"
+            }}
+          >
+            <Typography variant="body1" color="textPrimary">
+              {/* {this.getTagFullName(this.state.currentItemId)} */}
+            </Typography>
+            <TextField
+              id="tag"
+              label="Search for tags"
+              value={this.state.tagSearchText}
+              margin="normal"
+              style={{ marginLeft: 10, width: "50%" }}
+              onChange={this.handleTagSearchTextChange}
+              autoComplete="off"
             />
-          ))}
-        </div>
-      </div>
-      </Card>
+            {this.state.tagListVisible ? (
+              <List>
+                {this.state.matchedTags.map(tag => (
+                  <ListItem
+                    key={tag.getId()}
+                    button
+                    onClick={event =>
+                      this.handleAddParentTag(event, tag.getId())
+                    }
+                  >
+                    <ListItemText primary={tag.getName()} />
+                  </ListItem>
+                ))}
+                <Divider />
+                <ListItem
+                  key={this.addNewTagId}
+                  button
+                  onClick={event =>
+                    this.handleAddParentTag(event, this.addNewTagId)
+                  }
+                >
+                  <ListItemText
+                    primary={"Add new tag: " + this.state.tagSearchText}
+                  />
+                </ListItem>
+              </List>
+            ) : (
+              <div />
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {this.state.existingParentTags.map(tag => (
+                <Chip
+                  key={tag.getId()}
+                  label={tag.getName()}
+                  color="primary"
+                  onDelete={event =>
+                    this.handleParentTagDelete(event, tag.getId())
+                  }
+                  onClick={event => this.handleTagUpdate(event, tag.getId())}
+                  variant="outlined"
+                  style={{ margin: "5px" }}
+                />
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     );
   };
@@ -856,9 +928,7 @@ class MpgItemDetailsBase extends React.Component<
         currentTags.push(currentTag);
       } else {
         this.props.mpgLogger.unexpectedError(
-          `MpgItemDetails: getCurrentTags: item is undefined. id: ${
-            this.state.currentItemId
-          }`
+          `MpgItemDetails: getCurrentTags: item is undefined. id: ${this.state.currentItemId}`
         );
       }
     }
@@ -878,7 +948,7 @@ class MpgItemDetailsBase extends React.Component<
         "MpgItemDetails: handleDeleteCurrentItem: item deleted. going back "
       );
       this.setState({ deleteInProgress: false });
-      this.props.history.goBack();
+      this.goBack();
     } catch (err) {
       this.props.mpgLogger.unexpectedError(
         err,
@@ -960,10 +1030,14 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update tag for item
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleTagUpdate4Item = async (event: React.MouseEvent, item: MpgItem, tag: MpgItem) => {
-      await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
-      await this.props.mpgGraph.setCurrentItemId(tag.getId());
-      await this.props.history.push("/ItemDetails");
+  handleTagUpdate4Item = async (
+    event: React.MouseEvent,
+    item: MpgItem,
+    tag: MpgItem
+  ) => {
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
+    await this.props.mpgGraph.setCurrentItemId(tag.getId());
+    await this.props.history.push("/ItemDetails");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // showTags
@@ -973,7 +1047,7 @@ class MpgItemDetailsBase extends React.Component<
       // this.state.currentCategoryName === MpgCategoryType.View ||
       // this.state.currentCategoryName === MpgCategoryType.Entry
       this.props.mpgGraph.isCurrentCategoryView() ||
-      this.props.mpgGraph.isCurrenTcategoryEntry()
+      this.props.mpgGraph.isCurrentcategoryEntry()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -994,7 +1068,7 @@ class MpgItemDetailsBase extends React.Component<
     // }
     return (
       this.props.mpgGraph.isCurrentCategoryView() ||
-      this.props.mpgGraph.isCurrenTcategoryEntry()
+      this.props.mpgGraph.isCurrentcategoryEntry()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1003,7 +1077,7 @@ class MpgItemDetailsBase extends React.Component<
   showAddActions = (): boolean => {
     return (
       this.props.mpgGraph.isCurrentCategoryView() ||
-      this.props.mpgGraph.isCurrenTcategoryEntry()
+      this.props.mpgGraph.isCurrentcategoryEntry()
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1156,10 +1230,15 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleTagDelete4Item = async (event: any, item: MpgItem, tag: MpgItem) => {
     this.setState({ itemDataChanged: true });
-    let tags = item.getTags()
-    tags = tags.filter(aTag=> aTag.getId() !== tag.getId())
-    await this.props.mpgGraph.updateItemDetails(item.getId(), item.getCategoryId(), item.getName(),
-      item.getPriority(),tags)
+    let tags = item.getTags();
+    tags = tags.filter(aTag => aTag.getId() !== tag.getId());
+    await this.props.mpgGraph.updateItemDetails(
+      item.getId(),
+      item.getCategoryId(),
+      item.getName(),
+      item.getPriority(),
+      tags
+    );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle parent tag delete
@@ -1199,7 +1278,9 @@ class MpgItemDetailsBase extends React.Component<
   // getEntriesWithTags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   getEntriesWithAllTags = (): MpgItem[] => {
-    return this.props.mpgGraph.getEntriesWithAllTags(this.getCurrentTags());
+    return this.props.mpgGraph.getEntriesWithAllTagsNoCurrent(
+      this.getCurrentTags()
+    );
     // if (this.props.mpgGraph.isCurrentCategoryView()) {
     //   foundEntries = this.props.mpgGraph.getEntriesWithAllTag(
     //     this.getCurrentTags()
@@ -1410,7 +1491,7 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleCancel = async () => {
     // await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.List);
-    this.props.history.goBack();
+    this.goBack();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle item priority change
