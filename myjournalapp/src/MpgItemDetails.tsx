@@ -62,6 +62,7 @@ interface IItemDetailsState {
   matchedTags: MpgItem[];
   existingTags: MpgItem[];
   existingParentTags: MpgItem[];
+  existingChildTags: MpgItem[];
   allGoals: MpgItem[];
   goalSearchText: string;
   goalListVisible: boolean;
@@ -99,6 +100,7 @@ class MpgItemDetailsBase extends React.Component<
     let existingTags: MpgItem[] = [];
     let entriesWithTags: MpgItem[] = [];
     let existingParentTags: MpgItem[] = [];
+    let existingChildTags: MpgItem[] = [];
     let itemNetPriority = 0;
     if (item !== undefined) {
       entriesWithTags = [];
@@ -110,6 +112,7 @@ class MpgItemDetailsBase extends React.Component<
       screenName = "Update " + props.mpgGraph.getCyrrentCateoryName();
       if (props.mpgGraph.isCurrentCategoryTag()) {
         existingParentTags = item.getParents();
+        existingChildTags = item.getChildren();
       }
     }
     this.state = {
@@ -139,6 +142,7 @@ class MpgItemDetailsBase extends React.Component<
       screenTitle: screenName,
       deleteInProgress: false,
       existingParentTags: existingParentTags,
+      existingChildTags: existingChildTags,
       itemNetPriority: itemNetPriority,
       windowWidth: props.windowWidth
     };
@@ -223,7 +227,6 @@ class MpgItemDetailsBase extends React.Component<
               display: "flex",
               justifyContent: "space-between",
               justifyItems: "center",
-              // backgroundColor: this.props.primaryColor,
               margin: 0
             }}
           >
@@ -232,20 +235,23 @@ class MpgItemDetailsBase extends React.Component<
               style={{
                 margin: 5,
                 color: this.props.primaryColor,
-                fontSize: 18
+                fontSize: 18,
+                fontWeight:'bold'
               }}
             >
               keyboard_backspace
             </Icon>
             <Typography
               variant="h5"
-              style={{ color: MpgTheme.palette.primary.contrastText }}
+              style={{ color: MpgTheme.palette.primary.contrastText,
+              fontWeight:'bold' }}
             >
               {this.state.screenTitle}
             </Typography>
             <Icon
               onClick={this.handleSave}
-              style={{ margin: 5, color: saveIconColor, fontSize: 18 }}
+              style={{ margin: 5, color: saveIconColor, fontSize: 18,
+                fontWeight:'bold' }}
             >
               save
             </Icon>
@@ -295,7 +301,8 @@ class MpgItemDetailsBase extends React.Component<
             </div>
           </Card>
           {/* <Divider /> */}
-          {this.showAddParentTags() ? this.renderAddParentTags() : <div />}
+          {this.showAddParentChildTags() ? this.renderAddParentTags() : <div />}
+          {this.showAddParentChildTags() ? this.renderAddChildTags() : <div />}
           {this.showAddTags() ? this.renderAddTags() : <div />}
           {this.showAddEntry() ? this.renderAddEntry() : <div />}
           {this.showEntriesWithTags() ? this.renderEntriesWithTags() : <div />}
@@ -466,10 +473,10 @@ class MpgItemDetailsBase extends React.Component<
           style={{
             fontSize: "14px",
             fontWeight: "bold",
-            color: MpgTheme.palette.primary.dark
+            color: MpgTheme.palette.primary.contrastText
           }}
         >
-          Items with tags
+          Entries with tags
         </Typography>
         <MpgItemListComp
           itemList={this.state.itemsWithTags}
@@ -729,7 +736,7 @@ class MpgItemDetailsBase extends React.Component<
           style={{
             fontSize: "14px",
             fontWeight: "bold",
-            color: MpgTheme.palette.primary.dark
+            color: MpgTheme.palette.primary.contrastText
           }}
         >
           Add or create parent tags
@@ -791,6 +798,91 @@ class MpgItemDetailsBase extends React.Component<
                   color="primary"
                   onDelete={event =>
                     this.handleParentTagDelete(event, tag.getId())
+                  }
+                  onClick={event => this.handleTagUpdate(event, tag.getId())}
+                  variant="outlined"
+                  style={{ margin: "5px" }}
+                />
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // render Add Child tags
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  renderAddChildTags = () => {
+    return (
+      <div>
+        <Typography
+          color="textPrimary"
+          style={{
+            fontSize: "14px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.contrastText
+          }}
+        >
+          Add or create child tags
+        </Typography>
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start"
+            }}
+          >
+            <Typography variant="body1" color="textPrimary">
+              {/* {this.getTagFullName(this.state.currentItemId)} */}
+            </Typography>
+            <TextField
+              id="tag"
+              label="Search for tags"
+              value={this.state.tagSearchText}
+              margin="normal"
+              style={{ marginLeft: 10, width: "50%" }}
+              onChange={this.handleTagSearchTextChange}
+              autoComplete="off"
+            />
+            {this.state.tagListVisible ? (
+              <List>
+                {this.state.matchedTags.map(tag => (
+                  <ListItem
+                    key={tag.getId()}
+                    button
+                    onClick={event =>
+                      this.handleAddChildTag(event, tag.getId())
+                    }
+                  >
+                    <ListItemText primary={tag.getName()} />
+                  </ListItem>
+                ))}
+                <Divider />
+                <ListItem
+                  key={this.addNewTagId}
+                  button
+                  onClick={event =>
+                    this.handleAddChildTag(event, this.addNewTagId)
+                  }
+                >
+                  <ListItemText
+                    primary={"Add new tag: " + this.state.tagSearchText}
+                  />
+                </ListItem>
+              </List>
+            ) : (
+              <div />
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap" }}>
+              {this.state.existingChildTags.map(tag => (
+                <Chip
+                  key={tag.getId()}
+                  label={tag.getName()}
+                  color="primary"
+                  onDelete={event =>
+                    this.handleChildTagDelete(event, tag.getId())
                   }
                   onClick={event => this.handleTagUpdate(event, tag.getId())}
                   variant="outlined"
@@ -1053,7 +1145,7 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // show Add Parent Tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  showAddParentTags = (): boolean => {
+  showAddParentChildTags = (): boolean => {
     return this.props.mpgGraph.isCurrentCategoryTag();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1275,6 +1367,40 @@ class MpgItemDetailsBase extends React.Component<
     await this.saveCurrentItem();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle child tag delete
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleChildTagDelete = async (event: any, id: string) => {
+    // this.props.mpgLogger.debug(`MpgItemDetails: handleTagDelete: tagId:`,id,` allTags:`,this.props.mpgGraph.getAllTagsSorted())
+    this.setState({ itemDataChanged: true });
+    const tag = this.props.mpgGraph.getTagById(id);
+    if (tag !== undefined) {
+      const newTags = this.state.existingChildTags;
+      // this.props.mpgLogger.debug(
+      //   `MpgItemDetails: handleTagDelete: newTags:`,
+      //   newTags
+      // );
+      const index = newTags.findIndex(item => item.getId() === id);
+      newTags.splice(index, 1);
+      // this.props.mpgLogger.debug(
+      //   `MpgItemDetails: handleTagDelete: newTags:`,
+      //   newTags
+      // );
+      await this.setState({
+        existingChildTags: newTags,
+        tagSearchText: "",
+        tagListVisible: false
+      });
+      await this.setState({
+        itemDataChanged: true
+      });
+    } else {
+      this.props.mpgLogger.unexpectedError(
+        `MogItemDetails: handleTagDelete: tag was not found. id:${id}`
+      );
+    }
+    await this.saveCurrentItem();
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
   // getEntriesWithTags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   getEntriesWithAllTags = (): MpgItem[] => {
@@ -1440,6 +1566,7 @@ class MpgItemDetailsBase extends React.Component<
       if (newTag !== undefined) {
         // save the tag
         this.props.mpgGraph.saveTag(newTag);
+        // adding a newly created parent is always safe
         const newTags = this.state.existingParentTags;
         newTags.push(newTag);
         await this.setState({
@@ -1448,6 +1575,7 @@ class MpgItemDetailsBase extends React.Component<
           tagSearchText: "",
           itemDataChanged: true
         });
+        await this.saveCurrentItem();
         // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
         this.props.mpgLogger.unexpectedError(
@@ -1457,14 +1585,19 @@ class MpgItemDetailsBase extends React.Component<
     } else {
       const tag = this.props.mpgGraph.getTagById(id);
       if (tag !== undefined) {
-        const newTags = this.state.existingParentTags;
-        newTags.push(tag);
-        await this.setState({
-          existingParentTags: newTags,
-          tagListVisible: false,
-          tagSearchText: "",
-          itemDataChanged: true
-        });
+        if(this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId,tag)){
+          const newTags = this.state.existingParentTags;
+          newTags.push(tag);
+          await this.setState({
+            existingParentTags: newTags,
+            tagListVisible: false,
+            tagSearchText: "",
+            itemDataChanged: true
+          });
+          await this.saveCurrentItem();
+        }else{
+          this.props.showMessage('Cannot add parent. It is already in ancestors or decsendants')
+        }
         // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
         this.props.mpgLogger.unexpectedError(
@@ -1472,12 +1605,62 @@ class MpgItemDetailsBase extends React.Component<
         );
       }
     }
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle child tag
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleAddChildTag = async (event: any, id: string) => {
     // this.props.mpgLogger.debug(
-    //   `MpgItemDetails: handleTagClicked (exiting)`,
-    //   ` state:`,
+    //   `MpgItemDetails: handleTagClicked: state:`,
     //   this.state
     // );
-    await this.saveCurrentItem();
+    await this.setState({ itemDataChanged: true });
+    if (id === this.addNewTagId) {
+      const newTag = this.props.mpgGraph.createTagInstance(
+        this.state.tagSearchText
+      );
+      if (newTag !== undefined) {
+        // save the tag
+        this.props.mpgGraph.saveTag(newTag);
+        // adding a newly created tag is always safe
+        // so we don't need to check safety
+        const newTags = this.state.existingChildTags;
+        newTags.push(newTag);
+        await this.setState({
+          existingChildTags: newTags,
+          tagListVisible: false,
+          tagSearchText: "",
+          itemDataChanged: true
+        });
+        await this.saveCurrentItem();
+      } else {
+        this.props.mpgLogger.unexpectedError(
+          `MogItemDetails: handleAddChildTag: cannot create new tag. TagCategorrId was not found`
+        );
+      }
+    } else {
+      const tag = this.props.mpgGraph.getTagById(id);
+      if (tag !== undefined) {
+        if(this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId,tag)){
+          const newTags = this.state.existingChildTags;
+          newTags.push(tag);
+          await this.setState({
+            existingChildTags: newTags,
+            tagListVisible: false,
+            tagSearchText: "",
+            itemDataChanged: true
+          });
+          await this.saveCurrentItem();
+        }else{
+          this.props.showMessage('Cannot add parent. It is already in ancestors or decsendants')
+        }
+        // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
+      } else {
+        this.props.mpgLogger.unexpectedError(
+          `MogItemDetails: handleTagClicked: tag was not found. id:${id}`
+        );
+      }
+    }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get matched tags
@@ -1668,8 +1851,10 @@ class MpgItemDetailsBase extends React.Component<
         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
         // load tags
         let existingParentTags: MpgItem[] = [];
+        let existingChildTags: MpgItem[] = [];
         if (this.props.mpgGraph.isCurrentCategoryTag) {
           existingParentTags = item.getParents();
+          existingChildTags = item.getChildren();
         }
         await this.setState({
           displayMode: MpgDisplayMode.Update,
@@ -1681,7 +1866,8 @@ class MpgItemDetailsBase extends React.Component<
           itemsWithTags: entriesWithTags,
           showRelatedItems: this.showRelatedItems(),
           screenTitle: "Update " + this.props.mpgGraph.getCyrrentCateoryName(),
-          existingParentTags: existingParentTags
+          existingParentTags: existingParentTags,
+          existingChildTags: existingChildTags,
         });
       } else {
         this.props.mpgLogger.unexpectedError(
@@ -1855,7 +2041,8 @@ class MpgItemDetailsBase extends React.Component<
             this.state.itemPriority,
             this.state.existingTags,
             this.state.existingParentTags,
-            this.state.selectedEntries
+            this.state.existingChildTags,
+            this.state.selectedEntries,
           );
           // const currentItemId = this.props.mpgGraph.getCurrentItemId();
           await this.setState({
@@ -1882,6 +2069,7 @@ class MpgItemDetailsBase extends React.Component<
             this.state.itemPriority,
             this.state.existingTags,
             this.state.existingParentTags,
+            this.state.existingChildTags,
             this.state.selectedEntries
           );
           await this.setState({

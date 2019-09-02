@@ -119,14 +119,16 @@ export default class MpgItem extends MpgRootItem {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // add entry Rel
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  addActionRel = (actionRel: MpgRel) => {
-    this.entryRels.push(actionRel);
-  };
+  // addActionRel = (actionRel: MpgRel) => {
+  //   this.entryRels.push(actionRel);
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // add parent Rel
   // todo: detect any loops and return error
   ///////////////////////////////////////////////////////////////////////////////////////////////
   addParentRel = (parentRel: MpgRel) => {
+    // we need to check if inserring the new parent would cause cicular relationships
+    // we are checking this in the UI
     this.parentRels.push(parentRel);
     // add a childRel in the corresponding item
     const child = parentRel.getItem2();
@@ -134,10 +136,27 @@ export default class MpgItem extends MpgRootItem {
     child.addChildRel(childrel);
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is parent rel safe
+  // check if inserting parent rel safe (ie does not cause cicular relationships)
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isParentRelSafe = (parentRel: MpgRel): boolean =>{
+    let relSafe = false
+
+    return relSafe
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is parent in ancestors?
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // isParentInAncestors = (parentRel: MpgRel): boolean =>{
+  //   let inAncestor = true
+  //   let ancestors = this.getAncestors([])
+  //   return inAncestor
+  // }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // add child rel
   // todo: detect any loops and return error
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  addChildRel = (childRel: MpgRel) => {
+  private addChildRel = (childRel: MpgRel) => {
     this.childRels.push(childRel);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -153,18 +172,29 @@ export default class MpgItem extends MpgRootItem {
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // isParent
-  // chacek of the tag in the argumnet is a parent of this tag 
+  // check if the tag in the argumnet is a parent of this tag 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  isParent = (tag: MpgItem): boolean =>{
+  isParent = (item: MpgItem): boolean =>{
     let isParent = false
-    if(this.getParents().includes(tag)){
+    if(this.getParents().includes(item)){
       isParent = true
     }
     return isParent
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // isAncestor
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isAncestor = (item: MpgItem): boolean => {
+    let isAncestor = false
+    let ancestors = this.getAncestors([])
+    if(ancestors.includes(item)){
+      isAncestor = true
+    }
+    return isAncestor
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // areParents
-   // chacek of the tags in the argumnet are parents of this tag 
+  // check if the tags in the argumnet are parents of this tag 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   areParents = (tags: MpgItem[]): boolean => {
     let areParent = false
@@ -196,13 +226,18 @@ export default class MpgItem extends MpgRootItem {
     const foundAncestors: MpgItem[] = ancestors;
     this.getParents().forEach(parent => {
       if (foundAncestors.includes(parent)) {
-        throw new Error(
-          "MpgGraph: getAncestors: parent is already in set" +
-            "Item:" +
-            this.getName() +
-            " parent:" +
-            parent.getName()
-        );
+        // this should not happen
+        // however, we shouldn't throw exception here. we should do it in Graph
+        // also we need to fix it
+        // not only in memory but in the data repository
+        // we should also elimentate when we insert the relationship
+        // throw new Error(
+        //   "MpgItem: getAncestors: parent is already in set" +
+        //     "Item:" +
+        //     this.getName() +
+        //     " parent:" +
+        //     parent.getName()
+        // );
       } else {
         foundAncestors.push(parent);
         parent.getAncestors(foundAncestors);
@@ -218,13 +253,9 @@ export default class MpgItem extends MpgRootItem {
     const foundDescendants: MpgItem[] = descendants;
     this.getChildren().forEach(child => {
       if (foundDescendants.includes(child)) {
-        throw new Error(
-          "MpgItem: getDescendants: child is already in set" +
-            "Item:" +
-            this.getName() +
-            " child:" +
-            child.getName()
-        );
+        // this should not happen
+        // we have safe guard code to prevent it when adding parents
+        // do we need to do anything here? such as logging error?
       } else {
         foundDescendants.push(child);
         child.getDescendants(foundDescendants);
@@ -434,6 +465,7 @@ export default class MpgItem extends MpgRootItem {
     this.parentRels = this.parentRels.filter(
       parentRel => parentRel.getId() !== parentRel2Del.getId()
     );
+    // remove the corresponding child rel
     const child = parentRel2Del.getItem2();
     const childRel2Del = child.getChildRel4Child(this);
     if (childRel2Del !== undefined) {

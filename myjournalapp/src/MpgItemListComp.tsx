@@ -18,7 +18,7 @@ import { withRouter, RouteComponentProps } from "react-router-dom";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
-interface IItemListProps extends RouteComponentProps{
+interface IItemListProps extends RouteComponentProps {
   toggleSidebarVisibility: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void;
@@ -69,9 +69,7 @@ class MpgItemListCompBase extends React.Component<
         elevation={1}
         style={{ textAlign: "left", margin: 5 }}
       >
-        <CardActionArea 
-          onClick={event=>this.handleItemUpdate(event, item)}
-          >
+        <CardActionArea onClick={event => this.handleItemUpdate(event, item)}>
           <div style={{ textAlign: "left", padding: 10 }}>
             <Typography
               style={{
@@ -89,33 +87,78 @@ class MpgItemListCompBase extends React.Component<
             >
               Priority: {item.getNetPriority()} ({item.getPriority()})
             </Typography>
-            {this.renderRelatedTags(item)}
           </div>
         </CardActionArea>
+        <div style={{ textAlign: "left", padding: 10 }}>
+          {this.showItemTags(item) ? (
+            this.renderTags(item, item.getTags(), "Tags:")
+          ) : (
+            <div />
+          )}
+          {this.showParentTags(item) ? (
+            this.renderTags(item, item.getParents(), "Parent tags:")
+          ) : (
+            <div />
+          )}
+          {this.showChildTags(item) ? (
+            this.renderTags(item, item.getChildren(), "Child tags:")
+          ) : (
+            <div />
+          )}
+        </div>
         {this.renderActionIcons(item)}
       </Card>
     );
   };
-   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render related Tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderRelatedTags = (item: MpgItem) => {
-    let tags: MpgItem[] = []
-    if(this.props.mpgGraph.isCategoryIdTag(item.getCategoryId())){
-      tags = item.getParents()
-    }else{
-      tags = item.getTags()
-    }
+  // show item tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showItemTags = (item: MpgItem): boolean => {
+    return !this.props.mpgGraph.isItemTag(item);
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // show parent tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showParentTags = (item: MpgItem): boolean => {
+    return this.props.mpgGraph.isItemTag(item) && item.getParents().length > 0;
+  };
+   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // show child tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  showChildTags = (item: MpgItem): boolean => {
+    return this.props.mpgGraph.isItemTag(item) && item.getChildren().length > 0;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render item Tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderItemTags = (item: MpgItem) => {
+    return <div>{this.renderTags(item, item.getTags(), "Tags:")}</div>;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render parent Tags
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderParentTags = (item: MpgItem) => {
     return (
-      this.renderTags(item, tags)
+      <div>{this.renderTags(item, item.getParents(), "Parent tags:")}</div>
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // renderTags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderTags = (item: MpgItem, tags: MpgItem[]) => {
+  renderTags = (item: MpgItem, tags: MpgItem[], title: string = "") => {
     return (
-      <div style={{ display: "flex", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center" }}>
+        <Typography
+          display="inline"
+          style={{
+            fontSize: "10px",
+            fontWeight: "bold",
+            color: MpgTheme.palette.primary.main
+          }}
+          align="left"
+        >
+          {title}
+        </Typography>
         {tags.map(tag => (
           <Chip
             key={tag.getId()}
@@ -134,10 +177,10 @@ class MpgItemListCompBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get item tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  getItemTags = (item: MpgItem): MpgItem[] =>{
-    let foundTags: MpgItem[] = []
-    return foundTags
-  }
+  getItemTags = (item: MpgItem): MpgItem[] => {
+    let foundTags: MpgItem[] = [];
+    return foundTags;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render icons
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +211,7 @@ class MpgItemListCompBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update item (any item)
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleItemUpdate = async (evet: any,tag: MpgItem) => {
+  handleItemUpdate = async (evet: any, tag: MpgItem) => {
     await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Update);
     await this.props.mpgGraph.setCurrentCategoryId(tag.getCategoryId());
     await this.props.mpgGraph.setCurrentItemId(tag.getId());

@@ -83,7 +83,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
   private windowWidth = 400;
-  private version = "Beta 4 - released: 30 August 2019";
+  private version = "Beta 5 - released: 2 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   // private listSearchState = ListSearchState.List
@@ -807,7 +807,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // show message
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  showMessage = (message: string, messageWaitTime: number = 3000) => {
+  showMessage = (message: string, messageWaitTime: number = 6000) => {
     this.setState({
       messageVisible: true,
       message: message,

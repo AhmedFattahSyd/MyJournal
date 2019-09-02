@@ -58,8 +58,8 @@ export default class MpgGraph {
   protected allTags: MpgItem[] = [];
   private reCalcNetPriority = false;
   private allViews: MpgItem[] = [];
-  private currentCategoryType: CurrentCategoryType = CurrentCategoryType.Entry
-  private listSearchState: ListSearchState = ListSearchState.List
+  private currentCategoryType: CurrentCategoryType = CurrentCategoryType.Entry;
+  private listSearchState: ListSearchState = ListSearchState.List;
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,10 +102,47 @@ export default class MpgGraph {
     this.filteredAllItems = [];
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is adding a parent to item safe
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isAddingItemSafe = (itemId: string, parent: MpgItem): boolean => {
+    let isSafe = false;
+    let item = this.getItemById(itemId);
+    if (item !== undefined) {
+      let ancestors = item.getAncestors([]);
+      let descendants = item.getDescendants([]);
+      if (!ancestors.includes(parent) && !descendants.includes(parent)) {
+        isSafe = true;
+      }
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: isAddingParentSafe: item is undefined. id:" + itemId
+      );
+    }
+    return isSafe;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is item tag
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isItemTag = (item: MpgItem): boolean => {
+    return this.isCategoryIdTag(item.getCategoryId());
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is item tag
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isItemEntry = (item: MpgItem): boolean => {
+    return this.isCategoryIdEntry(item.getCategoryId());
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is item view
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isItemView = (item: MpgItem): boolean => {
+    return this.isCategoryIdView(item.getCategoryId());
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set current category type
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setCurrentItemType = async (type: CurrentCategoryType) => {
-    this.currentCategoryType = type
+    this.currentCategoryType = type;
     this.setFilteredAllItems();
     await this.invokeDataRefreshedFun();
   };
@@ -113,13 +150,13 @@ export default class MpgGraph {
   // get current category
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getCurrentCategory = (): CurrentCategoryType => {
-    return this.currentCategoryType
-  }
+    return this.currentCategoryType;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set list search state
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setListSearchState = async (state: ListSearchState) => {
-    this.listSearchState = state
+    this.listSearchState = state;
     await this.invokeDataRefreshedFun();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +198,7 @@ export default class MpgGraph {
       this.allEntries,
       this.allViews,
       this.currentCategoryType,
-      this.listSearchState,
+      this.listSearchState
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,6 +278,7 @@ export default class MpgGraph {
     importance: number,
     newTags: MpgItem[] = [],
     newParents: MpgItem[] = [],
+    newChildren: MpgItem[] = [],
     newActions: MpgItem[] = []
   ) => {
     // this.mpgLogger.debug(`MpgGraph: update item: item name:`, name)
@@ -258,7 +296,8 @@ export default class MpgGraph {
           // now update item tags
           this.updateItemTagRels(item, newTags);
           this.updateItemParentRels(item, newParents);
-          this.setAllEntries()
+          this.updateItemChildRels(item, newChildren);
+          this.setAllEntries();
           // this.setAllEntries();
           // // this.setAllGoals()
           // this.setAllTags();
@@ -383,8 +422,8 @@ export default class MpgGraph {
       parent => item.getParents().indexOf(parent) === -1
     );
     // this.mpgLogger.debug(`MpgGraph: updateItemTagRels: tagRelsToBeCreated:`, tagsToBeCreated)
-    parentsToBeCreated.forEach(parentRel => {
-      this.createItemParentRel(item, parentRel);
+    parentsToBeCreated.forEach(parent => {
+      this.createItemParentRel(item, parent);
     });
     // delete parents that exists in the old parents but not in the newParents
     const parentsToBeDeleted = item
@@ -403,6 +442,36 @@ export default class MpgGraph {
       } else {
         throw new MpgError(
           `MpgGraph: updateItemtagRels. TagRel not found. id:${parent.getId()}`
+        );
+      }
+    });
+  };
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // update Child Rels
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  updateItemChildRels = (item: MpgItem, newChildren: MpgItem[]) => {
+    // add new children: children that exist in the newChildren but not in the old children
+    const childrenToBeCreated = newChildren.filter(
+      child => item.getChildren().indexOf(child) === -1
+    );
+    childrenToBeCreated.forEach(child => {
+      // create the reverse parent relationship
+      this.createItemParentRel(child, item);
+    });
+    // delete children that exists in the old children but not in the newChildren
+    const childrenToBeDeleted = item
+      .getChildren()
+      .filter(child => newChildren.indexOf(child) === -1);
+    childrenToBeDeleted.forEach(child => {
+      // get the crosponding parentRel
+      const parentRel = child.getParentRel4Parent(item);
+      if (parentRel !== undefined) {
+        // remove from item
+        this.removeParentRelFromItem(child, parentRel);
+        this.deleteTagRel(parentRel.getId());
+      } else {
+        throw new MpgError(
+          `MpgGraph: updateItemtagRels. TagRel not found. id:${child.getId()}`
         );
       }
     });
@@ -648,7 +717,7 @@ export default class MpgGraph {
         error
       );
     } finally {
-      this.setAllItemTypes()
+      this.setAllItemTypes();
       this.invokeDataRefreshedFun();
     }
   };
@@ -724,6 +793,40 @@ export default class MpgGraph {
     }
     return idIsTag;
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is category id entry
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isCategoryIdEntry = (id: string): boolean => {
+    let idIsEntry = false;
+    let category = this.getCategoryById(id);
+    if (category !== undefined) {
+      if (category.getName() === MpgCategoryType.Entry) {
+        idIsEntry = true;
+      }
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: isCategoryEntry: catgeory is undefined. id:" + id
+      );
+    }
+    return idIsEntry;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is category id view
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isCategoryIdView = (id: string): boolean => {
+    let idIsView = false;
+    let category = this.getCategoryById(id);
+    if (category !== undefined) {
+      if (category.getName() === MpgCategoryType.View) {
+        idIsView = true;
+      }
+    } else {
+      this.mpgLogger.unexpectedError(
+        "MpgGraph: isCategoryView: catgeory is undefined. id:" + id
+      );
+    }
+    return idIsView;
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // create new item
   // this item could be Tag, Entry or view
@@ -734,6 +837,7 @@ export default class MpgGraph {
     priority: number,
     tags: MpgItem[] = [],
     parents: MpgItem[] = [],
+    children: MpgItem[] = [],
     actions: MpgItem[] = []
   ) => {
     // this.mpgLogger.debug(`MpgGraph: createItem: itemname:`,name)
@@ -752,6 +856,10 @@ export default class MpgGraph {
         // save parents
         for (const parent of parents) {
           this.createItemParentRel(item, parent);
+        }
+        // save children
+        for (const child of children) {
+          this.createItemChildRel(item, child);
         }
         this.allItems.push(item);
         this.setAllItemTypes();
@@ -960,6 +1068,21 @@ export default class MpgGraph {
       this.invokeDataRefreshedFun();
     }
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // create child rel
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  createItemChildRel = async (item: MpgItem, child: MpgItem) => {
+    try {
+      // create the reverse relationship
+      // as we don't persist child relationships
+      this.createItemParentRel(child, item)
+    } catch (err) {
+      this.error = new MpgError(
+        "MpgGraph: createItemChildRel:" + (err as Error).message
+      );
+      this.unexpectedError = true;
+    } 
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // copyRelToItemRecord
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1028,6 +1151,7 @@ export default class MpgGraph {
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // delete Tag Rel
+  // should rename delete rel because it works for all rel
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   deleteTagRel = async (id: string) => {
     try {
@@ -1037,7 +1161,7 @@ export default class MpgGraph {
     } catch (err) {
       this.mpgLogger.unexpectedError(err, "MpgGraph: deleteTagRel: error:");
     } finally {
-      this.setAllItemTypes()
+      this.setAllItemTypes();
       this.invokeDataRefreshedFun();
     }
   };
@@ -1127,7 +1251,7 @@ export default class MpgGraph {
     } finally {
       // this.setAllGoals()  // should we be invoking setAllRel too?
       this.reCalcNetPriority = true;
-      this.setAllItemTypes()
+      this.setAllItemTypes();
       this.invokeDataRefreshedFun();
     }
   };
@@ -1480,17 +1604,17 @@ export default class MpgGraph {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   setCurrentCategoryId = async (id: string) => {
     this.currentCategoryId = id;
-    let categoryType: CurrentCategoryType = CurrentCategoryType.Entry
-    if(this.isCurrentcategoryEntry()){
-      categoryType = CurrentCategoryType.Entry
+    let categoryType: CurrentCategoryType = CurrentCategoryType.Entry;
+    if (this.isCurrentcategoryEntry()) {
+      categoryType = CurrentCategoryType.Entry;
     }
-    if(this.isCurrentCategoryView()){
-      categoryType = CurrentCategoryType.View
+    if (this.isCurrentCategoryView()) {
+      categoryType = CurrentCategoryType.View;
     }
-    if(this.isCurrentCategoryTag()){
-      categoryType = CurrentCategoryType.Tag
+    if (this.isCurrentCategoryTag()) {
+      categoryType = CurrentCategoryType.Tag;
     }
-    this.setCurrentItemType(categoryType)
+    this.setCurrentItemType(categoryType);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get action by id
