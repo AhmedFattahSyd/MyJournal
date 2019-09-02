@@ -446,7 +446,7 @@ export default class MpgGraph {
       }
     });
   };
-   ///////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////
   // update Child Rels
   ///////////////////////////////////////////////////////////////////////////////////////////////
   updateItemChildRels = (item: MpgItem, newChildren: MpgItem[]) => {
@@ -1075,13 +1075,13 @@ export default class MpgGraph {
     try {
       // create the reverse relationship
       // as we don't persist child relationships
-      this.createItemParentRel(child, item)
+      this.createItemParentRel(child, item);
     } catch (err) {
       this.error = new MpgError(
         "MpgGraph: createItemChildRel:" + (err as Error).message
       );
       this.unexpectedError = true;
-    } 
+    }
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // copyRelToItemRecord
@@ -1615,6 +1615,44 @@ export default class MpgGraph {
       categoryType = CurrentCategoryType.Tag;
     }
     this.setCurrentItemType(categoryType);
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set cateogyId from current category type
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setCategoryIdFromCategoryType = () => {
+    let categoryId = this.getEntryCategoryId()
+    switch (this.currentCategoryType) {
+      case CurrentCategoryType.Entry:
+        categoryId = this.getEntryCategoryId();
+        if (categoryId !== undefined) {
+          this.currentCategoryId = categoryId;
+        } else {
+          this.mpgLogger.unexpectedError(
+            "setCategoryFromCategoryType: undefine entry category"
+          );
+        }
+        break;
+      case CurrentCategoryType.View:
+        categoryId = this.getViewCategoryId();
+        if (categoryId !== undefined) {
+          this.currentCategoryId = categoryId;
+        } else {
+          this.mpgLogger.unexpectedError(
+            "setCategoryFromCategoryType: undefine view category"
+          );
+        }
+        break;
+      case CurrentCategoryType.Tag:
+        categoryId = this.getTagCategoryId();
+        if (categoryId !== undefined) {
+          this.currentCategoryId = categoryId;
+        } else {
+          this.mpgLogger.unexpectedError(
+            "setCategoryFromCategoryType: undefine tag category"
+          );
+        }
+        break;
+    }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get action by id

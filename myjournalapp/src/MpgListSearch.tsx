@@ -35,11 +35,11 @@ interface ListISearchProps extends RouteComponentProps {
   mpgLogger: MpgLogger;
   allTags: MpgItem[];
   allEntries: MpgItem[];
-  cardWidth: number
+  cardWidth: number;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   allViews: MpgItem[];
   listSearchState: ListSearchState;
-  currentItemType: CurrentCategoryType
+  currentItemType: CurrentCategoryType;
 }
 interface IListSearchState {
   tagSearchText: string;
@@ -48,7 +48,7 @@ interface IListSearchState {
   matchedTags: MpgItem[];
   existingTags: MpgItem[];
   deleteInProgress: boolean;
-  cardWidth: number
+  cardWidth: number;
   nameSearchText: string;
   currentItemType: CurrentCategoryType;
   itemsToSearch: MpgItem[];
@@ -57,7 +57,7 @@ interface IListSearchState {
   allViews: MpgItem[];
   matchedItems: MpgItem[];
   listSearchState: ListSearchState;
-  items2Show: MpgItem[]
+  items2Show: MpgItem[];
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgListSearch class
@@ -135,10 +135,20 @@ class MpgListSearchBase extends React.Component<
         <div
           style={{
             display: "flex",
-            justifyContent: "space-around",
+            justifyContent: "space-between",
             alignContent: "center"
           }}
         >
+          <Icon
+            onClick={this.goBack}
+            style={{
+              margin: "5px",
+              fontSize: 18,
+              color: MpgTheme.palette.primary.contrastText
+            }}
+          >
+            keyboard_backspace
+          </Icon>
           <Select
             value={this.state.currentItemType}
             onChange={this.handleSearchItemTypeChange}
@@ -156,21 +166,45 @@ class MpgListSearchBase extends React.Component<
             <MenuItem value={"Tag"}>Tags</MenuItem>
             <MenuItem value={"View"}>Views</MenuItem>
           </Select>
+          <Icon
+            onClick={this.handleAddItem}
+            style={{
+              margin: "5px",
+              fontSize: 18,
+              color: MpgTheme.palette.primary.contrastText
+            }}
+          >
+            add
+          </Icon>
         </div>
         {this.renderSearchParamsWithSwitch()}
         {this.renderEntryList()}
       </Card>
     );
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handler add item
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleAddItem = async () => {
+    this.props.mpgGraph.setCategoryIdFromCategoryType();
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+    await this.props.history.push("/ItemDetails");
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle search item type change
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   handleSearchItemTypeChange = async (event: any) => {
-    const type = event.target.value
+    const type = event.target.value;
     // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
-    await this.props.mpgGraph.setCurrentItemType(type)
+    await this.props.mpgGraph.setCurrentItemType(type);
     // await this.setState({currentItemType: type})
     // await this.setItems2Show()
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // goback
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goBack = async () => {
+    this.props.history.goBack();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle search item type change
@@ -301,7 +335,7 @@ class MpgListSearchBase extends React.Component<
     );
     await this.setState({ existingTags: tags });
     // this.setMatchedItems();
-    this.setItems2Show()
+    this.setItems2Show();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // set matched tags
@@ -329,7 +363,7 @@ class MpgListSearchBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleTagSearchTextChange = async (event: React.ChangeEvent) => {
     const tagSearchText = (event.target as HTMLInputElement).value;
-    await this.setState({items2Show: this.state.matchedItems})
+    await this.setState({ items2Show: this.state.matchedItems });
     if (tagSearchText.length > 0) {
       await this.setState({
         tagSearchText: tagSearchText,
@@ -373,7 +407,7 @@ class MpgListSearchBase extends React.Component<
       tagSearchText: ""
     });
     // this.setMatchedItems();
-    this.setItems2Show()
+    this.setItems2Show();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render entry list
@@ -436,7 +470,9 @@ class MpgListSearchBase extends React.Component<
       >
         <Icon
           style={{ fontSize: "20px", color: listIconColor }}
-          onClick={event=>this.props.mpgGraph.setListSearchState(ListSearchState.List)}
+          onClick={event =>
+            this.props.mpgGraph.setListSearchState(ListSearchState.List)
+          }
         >
           view_headline
         </Icon>
@@ -448,7 +484,9 @@ class MpgListSearchBase extends React.Component<
         </Typography>
         <Icon
           style={{ fontSize: "20px", color: searchIconColor }}
-          onClick={event=>this.props.mpgGraph.setListSearchState(ListSearchState.Search)}
+          onClick={event =>
+            this.props.mpgGraph.setListSearchState(ListSearchState.Search)
+          }
         >
           search
         </Icon>
@@ -471,7 +509,7 @@ class MpgListSearchBase extends React.Component<
       });
     }
     // await this.setMatchedItems();
-    this.setItems2Show()
+    this.setItems2Show();
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will receive props
@@ -483,26 +521,26 @@ class MpgListSearchBase extends React.Component<
       allViews: newProps.allViews,
       listSearchState: newProps.listSearchState,
       currentItemType: newProps.currentItemType,
-      cardWidth: newProps.cardWidth,
+      cardWidth: newProps.cardWidth
     });
     // console.log('MpgListSearch: componentWillReceiveProps: newProps:',newProps);
-    await this.setItems2Show()
+    await this.setItems2Show();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set items to show
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  setItems2Show = async () =>{
+  setItems2Show = async () => {
     await this.setItems2Search();
     switch (this.state.listSearchState) {
       case ListSearchState.List:
-        await this.setState({items2Show: this.state.itemsToSearch})
+        await this.setState({ items2Show: this.state.itemsToSearch });
         break;
       case ListSearchState.Search:
         await this.setMatchedItems();
-        await this.setState({items2Show: this.state.matchedItems})
+        await this.setState({ items2Show: this.state.matchedItems });
         break;
     }
-  }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update item (any item)
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -588,7 +626,7 @@ class MpgListSearchBase extends React.Component<
     if (!this.props.userSignedIn) {
       this.props.history.push("/Landing");
     } else {
-      await this.setItems2Show()
+      await this.setItems2Show();
     }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////

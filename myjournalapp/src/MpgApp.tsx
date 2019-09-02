@@ -83,7 +83,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
   // private windowWidth = window.innerWidth
-  private version = "Beta 6 - released: 2 September 2019";
+  private version = "Beta 7 - released: 2 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   readonly maxCardWidth = 500

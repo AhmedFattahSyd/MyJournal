@@ -209,8 +209,8 @@ class MpgItemDetailsBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderItemDetails = () => {
     let saveIconColor = this.state.itemDataChanged
-      ? MpgTheme.palette.secondary.dark
-      : MpgTheme.palette.primary.dark;
+      ? MpgTheme.palette.secondary.main
+      : MpgTheme.palette.primary.contrastText;
     return (
       <Card
         elevation={1}
@@ -234,7 +234,7 @@ class MpgItemDetailsBase extends React.Component<
               onClick={this.goBack}
               style={{
                 margin: 5,
-                color: this.props.primaryColor,
+                color: MpgTheme.palette.primary.contrastText,
                 fontSize: 18,
                 fontWeight:'bold'
               }}
@@ -507,8 +507,8 @@ class MpgItemDetailsBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   renderActionIcons = () => {
     let saveIconColor = this.state.itemDataChanged
-      ? "white"
-      : this.props.primaryColor;
+      ? MpgTheme.palette.primary.contrastText
+      : MpgTheme.palette.primary.light
     return (
       <div
         style={{
@@ -522,7 +522,7 @@ class MpgItemDetailsBase extends React.Component<
       >
         <Icon
           onClick={this.goBack}
-          style={{ margin: 5, color: "white", fontSize: 18 }}
+          style={{ margin: 5, color: MpgTheme.palette.primary.contrastText, fontSize: 18 }}
         >
           view_headline
         </Icon>
