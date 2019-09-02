@@ -14,6 +14,7 @@ import {
   TextField
 } from "@material-ui/core";
 import { MpgUser } from "./MpgUser";
+import MpgGraph from "./MpgGraph";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,6 +26,7 @@ interface ISigninProps extends RouteComponentProps {
   setUserState: Function;
   mpgUser: MpgUser;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
+  mpgGraph: MpgGraph
 }
 interface ISigninState {
   userName: string;
@@ -56,6 +58,7 @@ class MpgSigninBase extends React.Component<ISigninProps, ISigninState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

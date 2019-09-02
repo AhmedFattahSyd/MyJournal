@@ -35,7 +35,7 @@ interface ListISearchProps extends RouteComponentProps {
   mpgLogger: MpgLogger;
   allTags: MpgItem[];
   allEntries: MpgItem[];
-  windowWidth: number;
+  cardWidth: number
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   allViews: MpgItem[];
   listSearchState: ListSearchState;
@@ -48,7 +48,7 @@ interface IListSearchState {
   matchedTags: MpgItem[];
   existingTags: MpgItem[];
   deleteInProgress: boolean;
-  windowWidth: number;
+  cardWidth: number
   nameSearchText: string;
   currentItemType: CurrentCategoryType;
   itemsToSearch: MpgItem[];
@@ -79,7 +79,7 @@ class MpgListSearchBase extends React.Component<
       matchedTags: [],
       existingTags: [],
       deleteInProgress: false,
-      windowWidth: props.windowWidth,
+      cardWidth: props.cardWidth,
       nameSearchText: "",
       currentItemType: props.currentItemType,
       itemsToSearch: this.props.allEntries,
@@ -100,6 +100,7 @@ class MpgListSearchBase extends React.Component<
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -121,13 +122,12 @@ class MpgListSearchBase extends React.Component<
   // render search panel
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   renderSearchPanel = () => {
-    const cardWidth = window.innerWidth > 500 ? 500 : window.innerWidth;
     return (
       <Card
         elevation={1}
         style={{
-          maxWidth: cardWidth,
-          minWidth: cardWidth,
+          maxWidth: this.state.cardWidth,
+          minWidth: this.state.cardWidth,
           margin: 10,
           backgroundColor: MpgTheme.palette.primary.light
         }}
@@ -483,6 +483,7 @@ class MpgListSearchBase extends React.Component<
       allViews: newProps.allViews,
       listSearchState: newProps.listSearchState,
       currentItemType: newProps.currentItemType,
+      cardWidth: newProps.cardWidth,
     });
     // console.log('MpgListSearch: componentWillReceiveProps: newProps:',newProps);
     await this.setItems2Show()

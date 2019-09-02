@@ -60,9 +60,9 @@ interface IMpgAppState {
   messageWaitTime: number;
   sidebarVisible: boolean;
   searchDialogOpen: boolean;
-  windowWidth: number;
   listSearchState: ListSearchState;
   currentItemType: CurrentCategoryType;
+  cardWidth: number
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg App class
@@ -82,10 +82,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private windowWidth = 400;
-  private version = "Beta 5 - released: 2 September 2019";
+  // private windowWidth = window.innerWidth
+  private version = "Beta 6 - released: 2 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
+  readonly maxCardWidth = 500
   // private listSearchState = ListSearchState.List
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
@@ -115,9 +116,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       messageWaitTime: 6000,
       sidebarVisible: false,
       searchDialogOpen: false,
-      windowWidth: this.windowWidth,
       listSearchState: ListSearchState.List,
-      currentItemType: CurrentCategoryType.View
+      currentItemType: CurrentCategoryType.View,
+      cardWidth: window.innerWidth < this.maxCardWidth? window.innerWidth : this.maxCardWidth  
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,6 +176,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 goToNewEntry={this.goToNewEntry}
                 displayMode={this.displayMode}
                 primaryColor={this.primaryColor}
+                cardWidth={this.state.cardWidth}
               />
             )}
           />
@@ -220,7 +222,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 allCategories={this.allCategories}
                 goToNewEntry={this.goToNewEntry}
                 primaryColor={this.primaryColor}
-                windowWidth={this.state.windowWidth}
+                cardWidth={this.state.cardWidth}
               />
             )}
           />
@@ -237,7 +239,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 allTags={this.allTags}
                 allEntries={this.allEntries}
                 goToNewEntry={this.goToNewEntry}
-                windowWidth={this.state.windowWidth}
+                cardWidth={this.state.cardWidth}
                 allViews={this.allViews}
                 listSearchState={this.state.listSearchState}
                 currentItemType={this.state.currentItemType}
@@ -251,6 +253,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 {...props}
                 toggleSidebarVisibility={this.toggleSidebarVisibility}
                 goToNewEntry={this.goToNewEntry}
+                mpgGraph={this.mpgGraph}
               />
             )}
           />
@@ -286,6 +289,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 setUserState={this.setUserState}
                 mpgUser={this.mpgUser}
                 goToNewEntry={this.goToNewEntry}
+                mpgGraph={this.mpgGraph}
               />
             )}
           />
@@ -833,8 +837,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // update desktop setting
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   updateSize = () => {
-    this.windowWidth = window.innerWidth;
-    // console.log('MpgApp: window width:', this.windowWidth );
+    this.setState({cardWidth: window.innerWidth < this.maxCardWidth? window.innerWidth: this.maxCardWidth })
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component did mount

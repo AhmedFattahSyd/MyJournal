@@ -64,6 +64,7 @@ class MpgConfirmSignupBase extends React.Component<
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

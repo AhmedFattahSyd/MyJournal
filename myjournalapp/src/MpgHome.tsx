@@ -38,12 +38,14 @@ interface IHomeProps extends RouteComponentProps {
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   displayMode: MpgDisplayMode;
   primaryColor: string
+  cardWidth: number
 }
 interface IHomeState {
   allCategories: MpgCategory[];
   currentCategoryId: string;
   currentItemId: string;
   displayMode: MpgDisplayMode;
+  cardWidth: number
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Home class
@@ -60,7 +62,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       allCategories: props.allCategories,
       currentCategoryId: currentCategoryId,
       currentItemId: props.currentItemId,
-      displayMode: props.displayMode
+      displayMode: props.displayMode,
+      cardWidth: props.cardWidth
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,6 +75,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -87,11 +91,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
         </div>
       </div>
     );
-    // return (
-    //   <div>
-    //     {this.props.desktop ? this.renderDesktop() : this.renderMobile()}
-    //   </div>
-    // );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render mobile
@@ -245,6 +244,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       <MpgAppBar
         toggleSidebarVisibility={this.props.toggleSidebarVisibility}
         goToNewEntry={this.props.goToNewEntry}
+        mpgGraph={this.props.mpgGraph}
       />
     );
   };
@@ -252,11 +252,10 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   // render categories
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderCategories = () => {
-    const cardWidth = 360;
     return (
       <Card
         elevation={1}
-        style={{ maxWidth: cardWidth, minWidth: cardWidth, margin: 10,
+        style={{ maxWidth: this.state.cardWidth, minWidth: this.state.cardWidth, margin: 10,
         backgroundColor: MpgTheme.palette.primary.light }}
       >
         <CardContent>
@@ -287,8 +286,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                   key={category.getId()}
                   elevation={1}
                   style={{
-                    maxWidth: cardWidth - 40,
-                    minWidth: cardWidth - 40,
+                    maxWidth: this.state.cardWidth - 40,
+                    minWidth: this.state.cardWidth - 40,
                     margin: 10
                   }}
                 >
@@ -298,17 +297,32 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                     }
                   >
                     <CardContent>
-                      <div style={{ display: "flex", justifyContent:'space-between',
-                    color: MpgTheme.palette.primary.light }}>
-                        <Icon style={{color: MpgTheme.palette.primary.dark}}>view_comfy</Icon>
-                        <Typography variant="h6" style={{color: MpgTheme.palette.primary.dark}}>
+                      <div style={{ display: "flex", alignContent:'center',
+                      justifyContent:'space-around', alignItems:'center',
+                    color: MpgTheme.palette.primary.dark }}>
+                        <Typography variant="h6" style={{color: MpgTheme.palette.primary.dark,
+                          fontWeight:'bold', }}>
                           {category.getName()+
                             ' ('+this.props.mpgGraph.getNumOfItemsInCategory(category)+')'}
                         </Typography>
-                        <div style={{width:'10px'}}/>
                       </div>
                     </CardContent>
                   </CardActionArea>
+                  <div 
+                     style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "5px"
+                    }}>
+                    <Icon style={{color: MpgTheme.palette.secondary.dark}}
+                      onClick={event =>
+                        this.handleSearchCategory(event, category.getId())
+                      }>search</Icon>
+                    <Icon style={{color: MpgTheme.palette.secondary.dark}}
+                    onClick={event =>
+                      this.handleAddItem(event, category.getId())
+                    }>add</Icon>
+                    </div>
                 </Card>
               ))}
             </div>
@@ -323,6 +337,22 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   handleCategoryCardClicked = async (event: React.MouseEvent, id: string) => {
     await this.props.mpgGraph.setCurrentCategoryId(id);
     await this.props.mpgGraph.setListSearchState(ListSearchState.List)
+    this.props.history.push("/Search");
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handler add item  
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleAddItem = async (event: React.MouseEvent, id: string) => {
+    await this.props.mpgGraph.setCurrentCategoryId(id);
+    await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+    await this.props.history.push("/ItemDetails");
+  };
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handler saerch category icon click
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleSearchCategory = async (event: React.MouseEvent, id: string) => {
+    await this.props.mpgGraph.setCurrentCategoryId(id);
+    await this.props.mpgGraph.setListSearchState(ListSearchState.Search)
     this.props.history.push("/Search");
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -341,7 +371,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       allCategories: newProps.allCategories,
       currentCategoryId: newProps.currentCategoryId,
       currentItemId: newProps.currentItemId,
-      displayMode: newProps.displayMode
+      displayMode: newProps.displayMode,
+      cardWidth: newProps.cardWidth,
     });
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////

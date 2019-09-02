@@ -44,7 +44,7 @@ interface IItemDetailsProps extends RouteComponentProps {
   allCategories: MpgCategory[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   primaryColor: string;
-  windowWidth: number;
+  cardWidth: number;
 }
 interface IItemDetailsState {
   currentCategoryId: string;
@@ -76,7 +76,7 @@ interface IItemDetailsState {
   itemDataChanged: boolean;
   screenTitle: string;
   deleteInProgress: boolean;
-  windowWidth: number;
+  cardWidth: number
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item Details class
@@ -144,7 +144,7 @@ class MpgItemDetailsBase extends React.Component<
       existingParentTags: existingParentTags,
       existingChildTags: existingChildTags,
       itemNetPriority: itemNetPriority,
-      windowWidth: props.windowWidth
+      cardWidth: props.cardWidth,
     };
   }
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,6 +156,7 @@ class MpgItemDetailsBase extends React.Component<
         <MpgAppBar
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -210,13 +211,12 @@ class MpgItemDetailsBase extends React.Component<
     let saveIconColor = this.state.itemDataChanged
       ? MpgTheme.palette.secondary.dark
       : MpgTheme.palette.primary.dark;
-    const cardWidth = window.innerWidth > 500 ? 500 : window.innerWidth;
     return (
       <Card
         elevation={1}
         style={{
-          maxWidth: cardWidth,
-          minWidth: cardWidth,
+          maxWidth: this.state.cardWidth,
+          minWidth: this.state.cardWidth,
           margin: 5,
           backgroundColor: MpgTheme.palette.primary.light
         }}
@@ -542,31 +542,6 @@ class MpgItemDetailsBase extends React.Component<
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render save and cancel buttons
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // renderSaveCancelButons = () => {
-  //   return (
-  //     <div>
-  //       <Button
-  //         variant="contained"
-  //         color="primary"
-  //         onClick={this.handleSave}
-  //         style={{ margin: "20px" }}
-  //       >
-  //         Save
-  //       </Button>
-  //       <Button
-  //         variant="contained"
-  //         color="primary"
-  //         onClick={this.handleCancel}
-  //         style={{ margin: "20px" }}
-  //       >
-  //         Cancel
-  //       </Button>
-  //     </div>
-  //   );
-  // };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle save
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   handleSave = async () => {
@@ -602,7 +577,7 @@ class MpgItemDetailsBase extends React.Component<
             color: MpgTheme.palette.primary.contrastText
           }}
         >
-          Add or create entries
+          search for or create entries
         </Typography>
         <Card>
           <TextField
@@ -739,7 +714,7 @@ class MpgItemDetailsBase extends React.Component<
             color: MpgTheme.palette.primary.contrastText
           }}
         >
-          Add or create parent tags
+          search for or create parent tags
         </Typography>
         <Card>
           <div
@@ -824,7 +799,7 @@ class MpgItemDetailsBase extends React.Component<
             color: MpgTheme.palette.primary.contrastText
           }}
         >
-          Add or create child tags
+          Search for or create child tags
         </Typography>
         <Card>
           <div
@@ -1826,7 +1801,8 @@ class MpgItemDetailsBase extends React.Component<
       displayMode: newProps.displayMode,
       currentItemId: newProps.currentItemId,
       allTags: newProps.allTags,
-      allEntries: newProps.allEntries
+      allEntries: newProps.allEntries,
+      cardWidth: newProps.cardWidth,
     });
     this.setCreateOrUpdateMode();
   };

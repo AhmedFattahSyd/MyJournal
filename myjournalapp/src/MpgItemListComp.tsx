@@ -194,13 +194,13 @@ class MpgItemListCompBase extends React.Component<
         }}
       >
         <Icon
-          style={{ fontSize: "14px", color: MpgTheme.palette.primary.dark }}
+          style={{ fontSize: "14px", color: MpgTheme.palette.secondary.dark }}
           onClick={event => this.handleItemUpdate(event, item)}
         >
           edit
         </Icon>
         <Icon
-          style={{ fontSize: "14px", color: MpgTheme.palette.primary.dark }}
+          style={{ fontSize: "14px", color: MpgTheme.palette.secondary.dark }}
           onClick={event => this.handleItemDelete(event, item)}
         >
           delete

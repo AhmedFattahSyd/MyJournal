@@ -5,6 +5,7 @@ import * as React from "react";
 import MpgAppBar from "./MpgAppBar";
 import { Card, CardContent, Typography, Divider, Button } from "@material-ui/core";
 import { RouteComponentProps } from "react-router";
+import MpgGraph from "./MpgGraph";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -13,6 +14,7 @@ interface ILandingProps extends RouteComponentProps {
   goToNewEntry: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void
+  mpgGraph: MpgGraph
 }
 interface ILandingState {}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -31,6 +33,7 @@ class MpgLanding extends React.Component<ILandingProps, ILandingState> {
       <div>
         <MpgAppBar toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
+          mpgGraph={this.props.mpgGraph}
            />
         <div style={{ paddingTop: 59 }}> </div>
         <div
