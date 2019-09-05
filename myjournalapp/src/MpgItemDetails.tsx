@@ -242,7 +242,7 @@ class MpgItemDetailsBase extends React.Component<
               keyboard_backspace
             </Icon>
             <Typography
-              variant="h5"
+              variant="h6"
               style={{ color: MpgTheme.palette.primary.contrastText,
               fontWeight:'bold' }}
             >
@@ -1177,12 +1177,12 @@ class MpgItemDetailsBase extends React.Component<
     if (id === this.addNewEntryId) {
       this.setState({ itemDataChanged: true });
       // await this.saveItem()
-      const newEntry = this.props.mpgGraph.createActionInstance(
+      const newEntry = this.props.mpgGraph.createEntryInstance(
         this.state.entrySearchText
       );
       if (newEntry !== undefined) {
         // save the action
-        await this.props.mpgGraph.createEntry(newEntry);
+        await this.props.mpgGraph.saveEntry(newEntry);
         await this.props.mpgGraph.addTagsToItem(
           newEntry,
           this.getCurrentTags()

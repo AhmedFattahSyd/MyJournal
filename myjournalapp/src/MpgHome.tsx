@@ -121,74 +121,74 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   // view: view list, view details which include entry list, entery details
   // tag: tag list, tag detials
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  public renderDesktop = () => {
-    // this.props.mpgLogger.debug(`MpgHome: renderDesktop: state`, this.state);
-    return (
-      <div style={{ backgroundColor: "lightgrey" }}>
-        {this.isCurrentItemValid() ||
-        this.state.displayMode === MpgDisplayMode.Create
-          ? this.renderListAndViewDesktop()
-          : this.renderListDesktop()}
-      </div>
-    );
-  };
+  // public renderDesktop = () => {
+  //   // this.props.mpgLogger.debug(`MpgHome: renderDesktop: state`, this.state);
+  //   return (
+  //     <div style={{ backgroundColor: "lightgrey" }}>
+  //       {this.isCurrentItemValid() ||
+  //       this.state.displayMode === MpgDisplayMode.Create
+  //         ? this.renderListAndViewDesktop()
+  //         : this.renderListDesktop()}
+  //     </div>
+  //   );
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render list and view
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  public renderListAndViewDesktop = () => {
-    return (
-      <div>
-        {this.renderAppBar()}
-        <div style={{ paddingTop: 59 }}> </div>
-        <div
-          style={{
-            padding: "10px",
-            display: "flex",
-            justifyContent: "space-around",
-            flexWrap: "wrap",
-            textAlign: "center"
-          }}
-        >
-          {/* {this.renderItemList()}
-          {this.renderItemDetails()} */}
-        </div>
-      </div>
-    );
-  };
+  // public renderListAndViewDesktop = () => {
+  //   return (
+  //     <div>
+  //       {this.renderAppBar()}
+  //       <div style={{ paddingTop: 59 }}> </div>
+  //       <div
+  //         style={{
+  //           padding: "10px",
+  //           display: "flex",
+  //           justifyContent: "space-around",
+  //           flexWrap: "wrap",
+  //           textAlign: "center"
+  //         }}
+  //       >
+  //         {/* {this.renderItemList()}
+  //         {this.renderItemDetails()} */}
+  //       </div>
+  //     </div>
+  //   );
+  // };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render list and view
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  public renderListDesktop = () => {
-    return (
-      <div>
-        {this.renderAppBar()}
-        <div style={{ paddingTop: 59 }}> </div>
-        <div
-          style={{
-            padding: "10px",
-            display: "flex",
-            justifyContent: "space-around",
-            flexWrap: "wrap",
-            textAlign: "center"
-          }}
-        >
-          {/* {this.renderItemList()} */}
-        </div>
-      </div>
-    );
-  };
+  // public renderListDesktop = () => {
+  //   return (
+  //     <div>
+  //       {this.renderAppBar()}
+  //       <div style={{ paddingTop: 59 }}> </div>
+  //       <div
+  //         style={{
+  //           padding: "10px",
+  //           display: "flex",
+  //           justifyContent: "space-around",
+  //           flexWrap: "wrap",
+  //           textAlign: "center"
+  //         }}
+  //       >
+  //         {/* {this.renderItemList()} */}
+  //       </div>
+  //     </div>
+  //   );
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // validate current item
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  isCurrentItemValid = (): boolean => {
-    let currentItemValid = false;
-    if (
-      this.props.mpgGraph.getItemById(this.state.currentItemId) !== undefined
-    ) {
-      currentItemValid = true;
-    }
-    return currentItemValid;
-  };
+  // isCurrentItemValid = (): boolean => {
+  //   let currentItemValid = false;
+  //   if (
+  //     this.props.mpgGraph.getItemById(this.state.currentItemId) !== undefined
+  //   ) {
+  //     currentItemValid = true;
+  //   }
+  //   return currentItemValid;
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render itemDetails
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +267,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
             }}
           >
             <Typography variant="h6" color="primary" />
-            <Typography variant="h6" style={{color: MpgTheme.palette.primary.contrastText}}>
+            <Typography variant="h6" style={{color: MpgTheme.palette.primary.contrastText,
+              fontWeight:'bold'}}>
               Categories ({this.state.allCategories.length})
             </Typography>
             <Typography variant="h6" color="primary" />

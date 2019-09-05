@@ -23,7 +23,8 @@ export enum MpgDisplayMode {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export enum ListSearchState {
   List = "List",
-  Search = "Search"
+  Search = "Search",
+  Tree = "Tree"
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // define enum for search item type
@@ -91,6 +92,49 @@ export default class MpgGraph {
     }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get root items (i.e. items without parents)
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getRootItems = (items: MpgItem[]): MpgItem[] => {
+    let rootItems: MpgItem[] = [];
+    items.forEach(item=>{
+      if(item.getParents().length === 0){
+        rootItems.push(item)
+      }
+    })
+    rootItems = this.sortItems(rootItems)
+    return rootItems;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // check data integrity and repair
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  checkDataIntegrityAndRepair = ()=>{
+    // scan all items and check the integrity of all rels
+    this.allItems.forEach(item=>{
+      // check that each parent rel has a correct corresponding child rel
+      item.getParentRels().forEach(parentRel=>{
+        this.checkParentRel(parentRel)
+      })
+    })
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // check parent rel has a correct corresponding child rel
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  checkParentRel = (parentRel: MpgRel)=>{
+    const parentItem = parentRel.getItem2()
+    const childItem = parentRel.getItem1()
+    const childRels = parentItem.getChildRels()
+    let childRelFound = false
+    childRels.forEach(childRel=>{
+      if(childRel.getItem2().getId() === childItem.getId()){
+        childRelFound = true
+      }
+    })
+    if(! childRelFound){
+      this.mpgLogger.debug('MpgGraph: checkParentRel: child rel was not found for parent rel',
+        'Parent item:',parentItem.getName(), 'child item: ', childItem.getName())
+    }
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // clear data
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   clearData = () => {
@@ -127,7 +171,7 @@ export default class MpgGraph {
     return this.isCategoryIdTag(item.getCategoryId());
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // is item tag
+  // is item entry
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   isItemEntry = (item: MpgItem): boolean => {
     return this.isCategoryIdEntry(item.getCategoryId());
@@ -176,6 +220,9 @@ export default class MpgGraph {
         break;
       }
     }
+    if(viewCategoryId === undefined){
+      this.mpgLogger.unexpectedError('MpgGraph: getViewCategoryId: cannot find view cateogry')
+    }
     return viewCategoryId;
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,7 +251,7 @@ export default class MpgGraph {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // create entry (without saving it)
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  createActionInstance = (
+  createEntryInstance = (
     name: string,
     importance: number = 0
   ): MpgItem | undefined => {
@@ -218,9 +265,9 @@ export default class MpgGraph {
     return action;
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // create entry
+  // save entry
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  createEntry = async (entry: MpgItem) => {
+  saveEntry = async (entry: MpgItem) => {
     // this.mpgLogger.debug(`MpgGraph: createItem: item importance:${importance}`)
     try {
       await this.mpgDataProxy.createDataRecord(
@@ -405,7 +452,7 @@ export default class MpgGraph {
         // remove from item
         // this.mpgLogger.debug(`MpgGraph: updateItemTagRels: deleteing tagRel:`, tagRel)
         this.removeTagRelFromItem(item, tagRel);
-        this.deleteTagRel(tagRel.getId());
+        this.deleteRel(tagRel.getId());
       } else {
         throw new MpgError(
           `MpgGraph: updateItemtagRels. TagRel not found. id:${tag.getId()}`
@@ -438,7 +485,7 @@ export default class MpgGraph {
         // remove from item
         // this.mpgLogger.debug(`MpgGraph: updateItemTagRels: deleteing tagRel:`, tagRel)
         this.removeParentRelFromItem(item, parentRel);
-        this.deleteTagRel(parentRel.getId());
+        this.deleteRel(parentRel.getId());
       } else {
         throw new MpgError(
           `MpgGraph: updateItemtagRels. TagRel not found. id:${parent.getId()}`
@@ -468,7 +515,7 @@ export default class MpgGraph {
       if (parentRel !== undefined) {
         // remove from item
         this.removeParentRelFromItem(child, parentRel);
-        this.deleteTagRel(parentRel.getId());
+        this.deleteRel(parentRel.getId());
       } else {
         throw new MpgError(
           `MpgGraph: updateItemtagRels. TagRel not found. id:${child.getId()}`
@@ -1140,26 +1187,23 @@ export default class MpgGraph {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   deleteAllItemRels = (item: MpgItem) => {
     item.getTagRels().forEach(tagRel => {
-      // this.mpgLogger.debug(`MpgGraph: deleteAllItemRels deleteing rel to tag: ${tagRel.getItem2().getName()}`)
-      this.deleteTagRel(tagRel.getId());
+      this.deleteRel(tagRel.getId());
       item.removeTagRel(tagRel);
     });
     item.getParentRels().forEach(parentRel => {
-      // this.mpgLogger.debug(`MpgGraph: deleteAllItemRels deleteing rel to tag: ${tagRel.getItem2().getName()}`)
       item.removeParentRel(parentRel);
     });
   };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // delete Tag Rel
-  // should rename delete rel because it works for all rel
+  // delete Rel
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  deleteTagRel = async (id: string) => {
+  deleteRel = async (id: string) => {
     try {
       // this.allTagRels = this.allTagRels.filter(tagRel=> tagRel.getId() !== id)
       // this.mpgLogger.debug(`MpgGraph: deleteTagRel deleteing rel with id: ${id}`)
       await this.mpgDataProxy.deleteDataRecord(id);
     } catch (err) {
-      this.mpgLogger.unexpectedError(err, "MpgGraph: deleteTagRel: error:");
+      this.mpgLogger.unexpectedError(err, "MpgGraph: deleteRel: error:");
     } finally {
       this.setAllItemTypes();
       this.invokeDataRefreshedFun();
@@ -1433,13 +1477,8 @@ export default class MpgGraph {
       this.clearData();
       await this.mpgDataProxy.loadData();
       await this.loadRecordsIntoObjects();
-      // this.mpgLogger.debug("MpgGraph: loadData: items:",this.allItems)
-      // this.calcNetPriority4AllItems()
-      // this.setFilteredAllItems();
-      // this.setAllEntries();
-      // this.setAllTags();
-      // this.setAllViews();
       this.setAllItemTypes();
+      this.checkDataIntegrityAndRepair()
       this.showMessage("Data loaded ...");
     } catch (error) {
       this.error = new MpgError(
@@ -1473,22 +1512,18 @@ export default class MpgGraph {
       // load categories
       for (let itemRecord of this.mpgDataProxy.getDataRecords()) {
         if (itemRecord.class === MpgDataClasses.Category) {
-          //loading category
-          // this.mpgLogger.debug("MpgGraph: loadRecordsIntoObjects: loading category:",itemRecord)
           this.loadCategory(itemRecord);
         }
       }
       // load items
       for (let itemRecord of this.mpgDataProxy.getDataRecords()) {
         if (itemRecord.class === MpgDataClasses.Item) {
-          // this.mpgLogger.debug("MpgGraph: loadRecordsIntoObjects: loading category:",itemRecord)
           this.loadItem(itemRecord);
         }
       }
       // load relationships
       for (let itemRecord of this.mpgDataProxy.getDataRecords()) {
         if (itemRecord.class === MpgDataClasses.Rel) {
-          // this.mpgLogger.debug("MpgGraph: loadRecordsIntoObjects: loading category:",itemRecord)
           this.loadRel(itemRecord);
         }
       }
@@ -1504,7 +1539,7 @@ export default class MpgGraph {
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   loadRel = (dataRecord: MpgDataRecord) => {
     try {
-      // validated that items exist
+      // validate that items exist
       const item1 = this.getItemById(dataRecord.item1Id);
       if (item1 !== undefined) {
         const relatedItem = this.getItemById(dataRecord.item2Id);
@@ -1518,11 +1553,7 @@ export default class MpgGraph {
                 relatedItem,
                 dataRecord.id
               );
-              // this.mpgLogger.debug(`MpgGraph: loadRel: loading tag: ${tagOrGoal.getName()} for item: ${item1.getName()},
-              //     recordItem:${dataRecord.id}, tagReg:`,tagRel)
-              // this.allTagRels.push(tagRel)
-              item1.addTagRel(tagRel);
-              // this.mpgLogger.debug(`MpgGraph: loadRel: item's relations:`,item1.getTagRels())
+              item1.addTagRel(tagRel)
               break;
             }
             case MpgRelNames.Parent: {
@@ -1533,7 +1564,6 @@ export default class MpgGraph {
                 dataRecord.id
               );
               item1.addParentRel(parentRel);
-              // this.mpgLogger.debug(`MpgGraph: loadRel: item's relations:`,item1.getTagRels())
               break;
             }
             default: {
@@ -1544,7 +1574,7 @@ export default class MpgGraph {
           }
         } else {
           throw new MpgError(
-            `MpgGraph: loadRel: tag does not exist. id: ${dataRecord.item2Id}`
+            `MpgGraph: loadRel: parent item does not exist. id: ${dataRecord.item2Id}`
           );
         }
       } else {
@@ -1553,13 +1583,13 @@ export default class MpgGraph {
         );
       }
     } catch (error) {
-      // this.error = new MpgError(`MpgGraph: loadRel: Error:` + error.toString())
-      // this.unexpectedError = true
+      this.error = new MpgError(`MpgGraph: loadRel: Error:` + error.toString())
+      this.unexpectedError = true
       // report the error, delete the rel and continue
       this.mpgLogger
         .debug(`MpgGraph: loadRel: error loading rel: ${error.toString()}. 
                 rel will be deleted`);
-      this.deleteTagRel(dataRecord.id);
+      this.deleteRel(dataRecord.id);
     } finally {
       this.invokeDataRefreshedFun();
     }
@@ -1620,7 +1650,7 @@ export default class MpgGraph {
   // set cateogyId from current category type
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setCategoryIdFromCategoryType = () => {
-    let categoryId = this.getEntryCategoryId()
+    let categoryId = this.getEntryCategoryId();
     switch (this.currentCategoryType) {
       case CurrentCategoryType.Entry:
         categoryId = this.getEntryCategoryId();

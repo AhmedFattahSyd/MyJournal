@@ -21,6 +21,8 @@ import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
 import MpgItemListComp from "./MpgItemListComp";
+import MpgTreeComp from "./MpgTreeComp";
+// import MpgTreeComp from "./MpgD3Test";
 import { ListSearchState, CurrentCategoryType } from "./MpgGraph";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
@@ -58,6 +60,7 @@ interface IListSearchState {
   matchedItems: MpgItem[];
   listSearchState: ListSearchState;
   items2Show: MpgItem[];
+  numberOfItems: number;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgListSearch class
@@ -88,7 +91,8 @@ class MpgListSearchBase extends React.Component<
       allViews: this.props.allViews,
       matchedItems: [],
       listSearchState: props.listSearchState,
-      items2Show: []
+      items2Show: [],
+      numberOfItems: 0
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,7 +117,6 @@ class MpgListSearchBase extends React.Component<
           }}
         >
           {this.renderSearchPanel()}
-          {/* {this.renderEntryList()} */}
         </div>
       </div>
     );
@@ -178,7 +181,7 @@ class MpgListSearchBase extends React.Component<
           </Icon>
         </div>
         {this.renderSearchParamsWithSwitch()}
-        {this.renderEntryList()}
+        {this.renderItemListOrTree()}
       </Card>
     );
   };
@@ -410,21 +413,39 @@ class MpgListSearchBase extends React.Component<
     this.setItems2Show();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render entry list
+  // render item list or Tree
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderEntryList = () => {
-    // let itemsToShow: MpgItem[] = [];
-    // switch (this.state.listSearchState) {
-    //   case ListSearchState.List:
-    //     itemsToShow = this.state.itemsToSearch;
-    //     break;
-    //   case ListSearchState.Search:
-    //     itemsToShow = this.state.matchedItems;
-    //     break;
-    // }
+  renderItemListOrTree = () => {
+    switch (this.state.listSearchState) {
+      case ListSearchState.Tree:
+        return this.renderItemTree();
+      case ListSearchState.List:
+      default:
+        return this.renderItemList();
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render item list
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderItemList = () => {
     return (
       <div>
         <MpgItemListComp
+          itemList={this.state.items2Show}
+          toggleSidebarVisibility={this.props.toggleSidebarVisibility}
+          mpgGraph={this.props.mpgGraph}
+          mpgLogger={this.props.mpgLogger}
+        />
+      </div>
+    );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // render item tree
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  renderItemTree = () => {
+    return (
+      <div>
+        <MpgTreeComp
           itemList={this.state.items2Show}
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           mpgGraph={this.props.mpgGraph}
@@ -439,27 +460,28 @@ class MpgListSearchBase extends React.Component<
   renderListSearchIcons = () => {
     let listIconColor = "";
     let searchIconColor = "";
+    let treeIconColor = "";
     let panelTitle = "";
     switch (this.state.listSearchState) {
       case ListSearchState.List:
-        searchIconColor = MpgTheme.palette.secondary.dark;
-        listIconColor = MpgTheme.palette.primary.dark;
+        searchIconColor = MpgTheme.palette.primary.dark;
+        listIconColor = MpgTheme.palette.secondary.dark;
+        treeIconColor = MpgTheme.palette.primary.dark;
         panelTitle = "List";
         break;
       case ListSearchState.Search:
-        listIconColor = MpgTheme.palette.secondary.dark;
+        listIconColor = MpgTheme.palette.primary.dark;
+        searchIconColor = MpgTheme.palette.secondary.dark;
+        treeIconColor = MpgTheme.palette.primary.dark;
+        panelTitle = "Search";
+        break;
+      case ListSearchState.Tree:
+        listIconColor = MpgTheme.palette.primary.dark;
         searchIconColor = MpgTheme.palette.primary.dark;
-        panelTitle = "Seach";
+        treeIconColor = MpgTheme.palette.secondary.dark;
+        panelTitle = "Tree";
         break;
     }
-    // let listIconColor =
-    //   this.state.listSearchState === ListSearchState.List
-    //     ? MpgTheme.palette.secondary.dark
-    //     : MpgTheme.palette.primary.dark;
-    // let SearchIconColor =
-    //   this.state.listSearchState === ListSearchState.Search
-    //     ? MpgTheme.palette.secondary.dark
-    //     : MpgTheme.palette.primary.dark;
     return (
       <div
         style={{
@@ -468,19 +490,29 @@ class MpgListSearchBase extends React.Component<
           padding: "5px"
         }}
       >
-        <Icon
-          style={{ fontSize: "20px", color: listIconColor }}
-          onClick={event =>
-            this.props.mpgGraph.setListSearchState(ListSearchState.List)
-          }
-        >
-          view_headline
-        </Icon>
+        <div>
+          <Icon
+            style={{ fontSize: "20px", color: listIconColor }}
+            onClick={event =>
+              this.props.mpgGraph.setListSearchState(ListSearchState.List)
+            }
+          >
+            view_headline
+          </Icon>
+          <Icon
+            style={{ fontSize: "20px", color: treeIconColor }}
+            onClick={event =>
+              this.props.mpgGraph.setListSearchState(ListSearchState.Tree)
+            }
+          >
+            account_tree
+          </Icon>
+        </div>
         <Typography
           variant="body1"
-          style={{ color: MpgTheme.palette.primary.dark }}
+          style={{ color: MpgTheme.palette.primary.dark, fontWeight: "bold" }}
         >
-          {panelTitle}
+          {panelTitle + " (" + this.state.numberOfItems + ")"}
         </Typography>
         <Icon
           style={{ fontSize: "20px", color: searchIconColor }}
@@ -532,12 +564,19 @@ class MpgListSearchBase extends React.Component<
   setItems2Show = async () => {
     await this.setItems2Search();
     switch (this.state.listSearchState) {
+      case ListSearchState.Tree:
       case ListSearchState.List:
-        await this.setState({ items2Show: this.state.itemsToSearch });
+        await this.setState({
+          items2Show: this.state.itemsToSearch,
+          numberOfItems: this.state.itemsToSearch.length
+        });
         break;
       case ListSearchState.Search:
         await this.setMatchedItems();
-        await this.setState({ items2Show: this.state.matchedItems });
+        await this.setState({
+          items2Show: this.state.matchedItems,
+          numberOfItems: this.state.matchedItems.length
+        });
         break;
     }
   };
