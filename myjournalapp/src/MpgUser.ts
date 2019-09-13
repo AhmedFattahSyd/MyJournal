@@ -9,7 +9,10 @@ import { SignUpParams } from '@aws-amplify/auth/lib/types';
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Amplify.configure(awsAmplifyConfig);
 import aws_exports from './aws-exports';
+import { AmazonAIPredictionsProvider } from '@aws-amplify/predictions';
 Amplify.configure(aws_exports);
+// Amplify.configure(awsconfig);
+Amplify.addPluggable(new AmazonAIPredictionsProvider());
 interface ISigninError {
     code: string,
     name: string,

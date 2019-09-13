@@ -9,7 +9,7 @@ import MpgItemDetails from "./MpgItemDetails";
 import MpgSearch from "./MpgListSearch";
 import MpgSignin from "./MpgSignin";
 import MpgGraph, {
-  MpgDisplayMode,
+  MpgDisplayMode as MpgCreateUpdateMode,
   ListSearchState,
   CurrentCategoryType
 } from "./MpgGraph";
@@ -45,6 +45,23 @@ import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
 import blue from "@material-ui/core/colors/blue";
 import MpgHome from "./MpgHome";
+import { MpgCategoryType } from "./MpgInitialCategories";
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// app location interface
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export enum AppPage {
+  Home = "Home",
+  List = "List",
+  Details = "Details"
+}
+export interface AppLocation {
+  page: AppPage;
+  listSearchState?: ListSearchState;
+  listSearchCategory?: MpgCategoryType;
+  searchText?: string;
+  searchTags?: MpgItem[];
+  itemId?: string;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define props and state
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +78,11 @@ interface IMpgAppState {
   sidebarVisible: boolean;
   searchDialogOpen: boolean;
   listSearchState: ListSearchState;
-  currentItemType: CurrentCategoryType;
-  cardWidth: number
+  newItemType: CurrentCategoryType;
+  cardWidth: number;
+  currentItem: MpgItem | undefined;
+  createUpdateMode: MpgCreateUpdateMode;
+  listSearchCategoryType: MpgCategoryType;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg App class
@@ -78,16 +98,18 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private filteredItems: MpgItem[] = [];
   private currentCategoryId: string = "";
   private currentItemId: string = ""; // item being displayed or edited
-  private displayMode: MpgDisplayMode = MpgDisplayMode.Create;
+  private displayMode: MpgCreateUpdateMode = MpgCreateUpdateMode.Create;
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  // private windowWidth = window.innerWidth
-  private version = "Beta 8 - released: 5 September 2019";
+  private version = "Beta 9 - released: 13 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
-  readonly maxCardWidth = 500
-  // private listSearchState = ListSearchState.List
+  readonly maxCardWidth = 500;
+  private pageHistory: AppLocation[] = [];
+  private searchText: string = "";
+  private searchTags: MpgItem[] = [];
+  // private listSearchCategoryTyepe: MpgCategoryType = MpgCategoryType.View
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,8 +139,14 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       sidebarVisible: false,
       searchDialogOpen: false,
       listSearchState: ListSearchState.List,
-      currentItemType: CurrentCategoryType.View,
-      cardWidth: window.innerWidth < this.maxCardWidth? window.innerWidth : this.maxCardWidth  
+      newItemType: CurrentCategoryType.View,
+      cardWidth:
+        window.innerWidth < this.maxCardWidth
+          ? window.innerWidth
+          : this.maxCardWidth,
+      currentItem: undefined,
+      createUpdateMode: MpgCreateUpdateMode.Create,
+      listSearchCategoryType: MpgCategoryType.View
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,8 +203,10 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 allEnteries={this.allEntries}
                 goToNewEntry={this.goToNewEntry}
                 displayMode={this.displayMode}
-                primaryColor={this.primaryColor}
                 cardWidth={this.state.cardWidth}
+                addPage2Histor={this.addPage2History}
+                goBack={this.goBack}
+                goToList={this.goToList}
               />
             )}
           />
@@ -221,8 +251,9 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 filteredItems={this.filteredItems}
                 allCategories={this.allCategories}
                 goToNewEntry={this.goToNewEntry}
-                primaryColor={this.primaryColor}
                 cardWidth={this.state.cardWidth}
+                addPage2Histor={this.addPage2History}
+                goBack={this.goBack}
               />
             )}
           />
@@ -242,7 +273,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 cardWidth={this.state.cardWidth}
                 allViews={this.allViews}
                 listSearchState={this.state.listSearchState}
-                currentItemType={this.state.currentItemType}
+                addPage2Histor={this.addPage2History}
+                goBack={this.goBack}
+                searchText={this.searchText}
+                searchTags={this.searchTags}
+                listSearchCategoryType={this.state.listSearchCategoryType}
+                createNewItem={this.createNewItem}
+                updateItem={this.updateItem}
               />
             )}
           />
@@ -319,6 +356,101 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         break;
       case ListSearchState.Search:
         this.setState({ listSearchState: ListSearchState.List });
+        break;
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // add page to histor
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  addPage2History = (location: AppLocation) => {
+    this.pageHistory.push(location);
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go back
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goBack = () => {
+    // this.mpgLogger.debug('MpgApp: goToSearchPage: pageHistor:', this.pageHistory)
+    let location = this.pageHistory.pop();
+    // we need to pop twice to get to the previous page
+    location = this.pageHistory.pop();
+    // this.mpgLogger.debug('MpgApp: goToSearchPage: location:', location)
+    if (location !== undefined) {
+      switch (location.page) {
+        case AppPage.List:
+          this.goToListOrSearchPage(location);
+          break;
+        case AppPage.Home:
+        default:
+          this.goHome();
+          break;
+      }
+    } else {
+      this.goHome();
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go to list
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToList = (category: MpgCategoryType, state: ListSearchState) => {
+    switch (category) {
+      case MpgCategoryType.View:
+        this.goToViews(state);
+        break;
+      case MpgCategoryType.Entry:
+        this.goToEntries(state);
+        break;
+      case MpgCategoryType.Tag:
+        this.goToTags(state);
+        break;
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go to list or earch page
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToListOrSearchPage = (location: AppLocation) => {
+    switch (location.listSearchState) {
+      case ListSearchState.Search:
+        this.goToSearchPage(location);
+        break;
+      case ListSearchState.List:
+      default:
+        this.goToListPage(location);
+        break;
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go to search page
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToSearchPage = async (location: AppLocation) => {
+    if (location.searchText !== undefined) {
+      this.searchText = location.searchText;
+    }
+    if (location.searchTags !== undefined) {
+      this.searchTags = location.searchTags;
+    }
+    // await this.mpgGraph.setListSearchState(ListSearchState.Search);
+    // if(location.listSearchCategory !== undefined){
+    //   await this.mpgGraph.setCurrentItemType(location.listSearchCategory);
+    // }else{
+    //   await this.mpgGraph.setCurrentItemType(CurrentCategoryType.View);
+    // }
+    await this.setState({});
+    this.props.history.push("/Search");
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // go to list page
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToListPage = (location: AppLocation) => {
+    switch (location.listSearchCategory) {
+      case MpgCategoryType.Entry:
+        this.goToEntries();
+        break;
+      case MpgCategoryType.Tag:
+        this.goToTags();
+        break;
+      case MpgCategoryType.View:
+      default:
+        this.goToViews();
         break;
     }
   };
@@ -447,24 +579,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Views
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  goToViews = async () => {
-    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.View);
-    await this.mpgGraph.setListSearchState(ListSearchState.List);
+  goToViews = async (state: ListSearchState = ListSearchState.List) => {
+    await this.setState({
+      listSearchCategoryType: MpgCategoryType.View,
+      listSearchState: state
+    });
     this.props.history.push("/Search");
-    // const viewCategoryId = this.mpgGraph.getViewCategoryId();
-    // if (viewCategoryId !== undefined) {
-    //   // await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
-    //   await this.setState({
-    //     listSearchState: ListSearchState.List,
-    //     currentItemType: CurrentCategoryType.View
-    //   });
-    //   this.props.history.push("/Search");
-    // } else {
-    //   this.handleFatalAppError(
-    //     "Unexpected error",
-    //     new MpgError(`MpgApp: goToViews: viewsCategoryId is undefined`)
-    //   );
-    // }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // go to search
@@ -488,19 +608,19 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemText primary="Home" />
           </ListItem>
           <Divider />
-          <ListItem button onClick={this.goToViews}>
+          <ListItem button onClick={event=>this.goToViews}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
             <ListItemText primary="Views" />
           </ListItem>
-          <ListItem button onClick={this.goToEntries}>
+          <ListItem button onClick={event=>this.goToEntries}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
             <ListItemText primary="Entries" />
           </ListItem>
-          <ListItem button onClick={this.goToTags}>
+          <ListItem button onClick={event=>this.goToTags}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
@@ -579,6 +699,34 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       this.showMessage("Unable to signout. Reason: " + error);
     }
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // create new item
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  createNewItem = (type: MpgCategoryType) => {
+    switch (type) {
+      case MpgCategoryType.Entry:
+        this.goToNewEntry();
+        break;
+      case MpgCategoryType.View:
+        this.goToNewView();
+        break;
+      case MpgCategoryType.Tag:
+        this.goToNewTag();
+        break;
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // update item
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  updateItem = async (item: MpgItem) => {
+    if (this.state.userSignedIn) {
+      await this.setState({ currentItem: item });
+      await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Update);
+      await this.props.history.push("/ItemDetails");
+    } else {
+      this.showMessage("Please signin first");
+    }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to new entry
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -587,7 +735,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const entryCategoryId = this.mpgGraph.getEntryCategoryId();
       if (entryCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -606,7 +754,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const viewCategoryId = this.mpgGraph.getViewCategoryId();
       if (viewCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -625,7 +773,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const tagCategoryId = this.mpgGraph.getTagCategoryId();
       if (tagCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
+        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -639,47 +787,22 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  goToTags = async () => {
-    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.Tag);
-    await this.mpgGraph.setListSearchState(ListSearchState.List);
+  goToTags = async (state: ListSearchState = ListSearchState.List) => {
+    await this.setState({
+      listSearchCategoryType: MpgCategoryType.Tag,
+      listSearchState: state
+    });
     this.props.history.push("/Search");
-    // const tagCategoryId = this.mpgGraph.getTagCategoryId();
-    // if (tagCategoryId !== undefined) {
-    //   await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-    //   await this.setState({
-    //     listSearchState: ListSearchState.List,
-    //     currentItemType: CurrentCategoryType.Tag
-    //   });
-    //   this.props.history.push("/Search");
-    //   // await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-    // } else {
-    //   this.handleFatalAppError(
-    //     "Unexpected error",
-    //     new MpgError(`MpgApp: goToTags: tagCategoryId is undefined`)
-    //   );
-    // }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go to Entries
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  goToEntries = async () => {
-    await this.mpgGraph.setCurrentItemType(CurrentCategoryType.Entry);
-    await this.mpgGraph.setListSearchState(ListSearchState.List);
+  goToEntries = async (state: ListSearchState = ListSearchState.List) => {
+    await this.setState({
+      listSearchCategoryType: MpgCategoryType.Entry,
+      listSearchState: state
+    });
     this.props.history.push("/Search");
-    // const entryCategoryId = this.mpgGraph.getEntryCategoryId();
-    // if (entryCategoryId !== undefined) {
-    //   // await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-    //   await this.setState({
-    //     listSearchState: ListSearchState.List,
-    //     currentItemType: CurrentCategoryType.Entry
-    //   });
-    //   this.props.history.push("/Search");
-    // } else {
-    //   this.handleFatalAppError(
-    //     "Unexpected error",
-    //     new MpgError(`MpgApp: goActions: entryCategoryId is undefined`)
-    //   );
-    // }
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // go home
@@ -774,7 +897,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     filteredAllItems: MpgItem[],
     currentCategoryId: string,
     currentItemId: string,
-    displayMode: MpgDisplayMode,
+    displayMode: MpgCreateUpdateMode,
     allTags: MpgItem[],
     allEntries: MpgItem[],
     allViews: MpgItem[],
@@ -794,7 +917,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     await this.setState({
       appError: error,
       appErrorState: unexpectedError,
-      currentItemType: currentItemType,
+      newItemType: currentItemType,
       listSearchState: listSearchState
     });
   };
@@ -837,7 +960,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   // update desktop setting
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   updateSize = () => {
-    this.setState({cardWidth: window.innerWidth < this.maxCardWidth? window.innerWidth: this.maxCardWidth })
+    this.setState({
+      cardWidth:
+        window.innerWidth < this.maxCardWidth
+          ? window.innerWidth
+          : this.maxCardWidth
+    });
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // component did mount

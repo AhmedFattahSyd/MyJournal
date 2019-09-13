@@ -1,0 +1,13 @@
+{
+    "resourceName": "myjournaltranscription",
+    "convertPolicyName": "transcriptionPolicya1bd1123",
+    "authRoleName": {
+        "Ref": "AuthRoleName"
+    },
+    "unauthRoleName": {
+        "Ref": "UnauthRoleName"
+    },
+    "convertType": "transcription",
+    "language": "en-GB",
+    "access": "auth"
+}

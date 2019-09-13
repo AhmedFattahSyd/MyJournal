@@ -17,6 +17,7 @@ import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
 import { ListSearchState } from "./MpgGraph";
+import { AppLocation, AppPage } from "./MpgApp";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -37,8 +38,10 @@ interface IHomeProps extends RouteComponentProps {
   allEnteries: MpgItem[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   displayMode: MpgDisplayMode;
-  primaryColor: string
   cardWidth: number
+  addPage2Histor: Function
+  goBack: Function
+  goToList: Function
 }
 interface IHomeState {
   allCategories: MpgCategory[];
@@ -114,128 +117,6 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       </div>
     );
   };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render desktop
-  // renders different desktops depending of the selected categories
-  // entry: entry list, entery details
-  // view: view list, view details which include entry list, entery details
-  // tag: tag list, tag detials
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // public renderDesktop = () => {
-  //   // this.props.mpgLogger.debug(`MpgHome: renderDesktop: state`, this.state);
-  //   return (
-  //     <div style={{ backgroundColor: "lightgrey" }}>
-  //       {this.isCurrentItemValid() ||
-  //       this.state.displayMode === MpgDisplayMode.Create
-  //         ? this.renderListAndViewDesktop()
-  //         : this.renderListDesktop()}
-  //     </div>
-  //   );
-  // };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render list and view
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // public renderListAndViewDesktop = () => {
-  //   return (
-  //     <div>
-  //       {this.renderAppBar()}
-  //       <div style={{ paddingTop: 59 }}> </div>
-  //       <div
-  //         style={{
-  //           padding: "10px",
-  //           display: "flex",
-  //           justifyContent: "space-around",
-  //           flexWrap: "wrap",
-  //           textAlign: "center"
-  //         }}
-  //       >
-  //         {/* {this.renderItemList()}
-  //         {this.renderItemDetails()} */}
-  //       </div>
-  //     </div>
-  //   );
-  // };
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render list and view
-  ///////////////////////////////////////////////////////////////////////////////////////////////
-  // public renderListDesktop = () => {
-  //   return (
-  //     <div>
-  //       {this.renderAppBar()}
-  //       <div style={{ paddingTop: 59 }}> </div>
-  //       <div
-  //         style={{
-  //           padding: "10px",
-  //           display: "flex",
-  //           justifyContent: "space-around",
-  //           flexWrap: "wrap",
-  //           textAlign: "center"
-  //         }}
-  //       >
-  //         {/* {this.renderItemList()} */}
-  //       </div>
-  //     </div>
-  //   );
-  // };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // validate current item
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // isCurrentItemValid = (): boolean => {
-  //   let currentItemValid = false;
-  //   if (
-  //     this.props.mpgGraph.getItemById(this.state.currentItemId) !== undefined
-  //   ) {
-  //     currentItemValid = true;
-  //   }
-  //   return currentItemValid;
-  // };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render itemDetails
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // renderItemDetails = () => {
-  //   return (
-  //     <MpgItemDetails
-  //       toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-  //       showMessage={this.props.showMessage}
-  //       userSignedIn={this.props.userSignedIn}
-  //       currentCategoryId={this.props.currentCategoryId}
-  //       mpgGraph={this.props.mpgGraph}
-  //       mpgLogger={this.props.mpgLogger}
-  //       displayMode={this.props.createOrUpdateMode}
-  //       currentItemId={this.props.currentItemId}
-  //       allTags={this.props.allTags}
-  //       allEntries={this.props.allEnteries}
-  //       desktop={this.props.desktop}
-  //       filteredItems={this.props.filteredItems}
-  //       allCategories={this.props.allCategories}
-  //       goToNewEntry={this.props.goToNewEntry}
-  //       primaryColor={this.props.primaryColor}
-  //     />
-  //   );
-  // };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render itemList
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // renderItemList = () => {
-  //   return (
-  //     <MpgItemList
-  //       toggleSidebarVisibility={this.props.toggleSidebarVisibility}
-  //       showMessage={this.props.showMessage}
-  //       userSignedIn={this.props.userSignedIn}
-  //       currentCategoryId={this.props.currentCategoryId}
-  //       mpgGraph={this.props.mpgGraph}
-  //       mpgLogger={this.props.mpgLogger}
-  //       filteredItems={this.props.filteredItems}
-  //       currentItemId={this.props.currentItemId}
-  //       desktop={this.props.desktop}
-  //       allCategories={this.props.allCategories}
-  //       displayMode={this.props.createOrUpdateMode}
-  //       allTags={this.props.allTags}
-  //       allEnteries={this.props.allEnteries}
-  //       goToNewEntry={this.props.goToNewEntry}
-  //     />
-  //   );
-  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render AppBar
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,7 +175,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                 >
                   <CardActionArea
                     onClick={event =>
-                      this.handleCategoryCardClicked(event, category.getId())
+                      this.handleCategoryCardClicked(event, category.getName())
                     }
                   >
                     <CardContent>
@@ -317,7 +198,7 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
                     }}>
                     <Icon style={{color: MpgTheme.palette.secondary.dark}}
                       onClick={event =>
-                        this.handleSearchCategory(event, category.getId())
+                        this.handleSearchCategory(event, category.getName())
                       }>search</Icon>
                     <Icon style={{color: MpgTheme.palette.secondary.dark}}
                     onClick={event =>
@@ -335,10 +216,11 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handler category card click
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleCategoryCardClicked = async (event: React.MouseEvent, id: string) => {
-    await this.props.mpgGraph.setCurrentCategoryId(id);
-    await this.props.mpgGraph.setListSearchState(ListSearchState.List)
-    this.props.history.push("/Search");
+  handleCategoryCardClicked = async (event: React.MouseEvent, name: string) => {
+    // await this.props.mpgGraph.setCurrentCategoryId(id);
+    // await this.props.mpgGraph.setListSearchState(ListSearchState.List)
+    // this.props.history.push("/Search");
+    this.props.goToList(name)
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handler add item  
@@ -349,12 +231,13 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
     await this.props.history.push("/ItemDetails");
   };
    ///////////////////////////////////////////////////////////////////////////////////////////////
-  // handler saerch category icon click
+  // handle search category icon click
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleSearchCategory = async (event: React.MouseEvent, id: string) => {
-    await this.props.mpgGraph.setCurrentCategoryId(id);
-    await this.props.mpgGraph.setListSearchState(ListSearchState.Search)
-    this.props.history.push("/Search");
+  handleSearchCategory = async (event: React.MouseEvent, name: string) => {
+    // await this.props.mpgGraph.setCurrentCategoryId(id);
+    // await this.props.mpgGraph.setListSearchState(ListSearchState.Search)
+    // this.props.history.push("/Search");
+    this.props.goToList(name, ListSearchState.Search)
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will mount
@@ -364,6 +247,13 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
       this.props.history.push("/Landing");
     }
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // component did mount
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  componentDidMount = () =>{
+    const appLocation: AppLocation = {page: AppPage.Home}
+    this.props.addPage2Histor(appLocation)
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // component will receive props
   ///////////////////////////////////////////////////////////////////////////////////////////////

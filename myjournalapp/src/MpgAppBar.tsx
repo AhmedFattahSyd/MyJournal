@@ -41,7 +41,7 @@ class MpgAppBarBase extends React.Component<IAppBarProps, IAppBarState> {
           <Toolbar style={{ display: "flex", justifyContent: "space-between" }}>
             <Icon
               onClick={this.props.toggleSidebarVisibility}
-              style={{ margin: "15px" }}
+              style={{ margin: "5px" }}
             >
               menu
             </Icon>

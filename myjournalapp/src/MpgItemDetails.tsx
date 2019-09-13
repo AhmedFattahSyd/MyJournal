@@ -24,6 +24,29 @@ import MpgItem from "./MpgItem";
 import MpgCategory from "./MpgCategory";
 import MpgTheme from "./MpgTheme";
 import MpgItemListComp from "./MpgItemListComp";
+import { AppLocation, AppPage } from "./MpgApp";
+import { Predictions } from "aws-amplify";
+import mic from "microphone-stream";
+class AudioBuffer {
+  private buffer: any = [];
+  add = (raw: any) => {
+    this.buffer = this.buffer.concat(...raw);
+    return this.buffer;
+  };
+  newBuffer = () => {
+    console.log("reseting buffer");
+    this.buffer = [];
+  };
+  reset = () => {
+    this.newBuffer();
+  };
+  addData = (raw: any) => {
+    return this.add(raw);
+  };
+  getData = () => {
+    return this.buffer;
+  };
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -43,8 +66,10 @@ interface IItemDetailsProps extends RouteComponentProps {
   filteredItems: MpgItem[];
   allCategories: MpgCategory[];
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
-  primaryColor: string;
   cardWidth: number;
+  addPage2Histor: Function;
+  goBack: Function;
+  // currentItemType: MpgCategoryType
 }
 interface IItemDetailsState {
   currentCategoryId: string;
@@ -76,7 +101,13 @@ interface IItemDetailsState {
   itemDataChanged: boolean;
   screenTitle: string;
   deleteInProgress: boolean;
-  cardWidth: number
+  cardWidth: number;
+  recordingNow: boolean;
+  audioBuffer: AudioBuffer;
+  recording: boolean;
+  micStream: any;
+  // newItemType: MpgCategoryType | undefined
+  // currentItemType: MpgCategory | undefined
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item Details class
@@ -88,31 +119,34 @@ class MpgItemDetailsBase extends React.Component<
   readonly addNewTagId = "ADD_NEW_TAG_ID";
   // readonly addNewGoalId = "ADD_NEW_GOAL_ID";
   readonly addNewEntryId = "ADD_NEW_ENTRY_ID";
+  private audioFile: any;
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
   constructor(props: IItemDetailsProps) {
     super(props);
-    const item = this.props.mpgGraph.getItemById(props.currentItemId);
+    // Amplify.configure(awsconfig);
+    // Amplify.addPluggable(new AmazonAIPredictionsProvider());
+    const currentItem = props.mpgGraph.getItemById(props.currentItemId);
     let itemPriority = 0;
     let itemName = "";
-    let screenName = "New " + props.mpgGraph.getCyrrentCateoryName();
+    let screenName = "New " + props.mpgGraph.getCurrentCateoryName();
     let existingTags: MpgItem[] = [];
     let entriesWithTags: MpgItem[] = [];
     let existingParentTags: MpgItem[] = [];
     let existingChildTags: MpgItem[] = [];
     let itemNetPriority = 0;
-    if (item !== undefined) {
+    if (currentItem !== undefined) {
       entriesWithTags = [];
-      itemPriority = item.getPriority();
-      itemNetPriority = item.getNetPriority();
-      itemName = item.getName();
-      itemPriority = item.getPriority();
-      existingTags = item.getTags();
-      screenName = "Update " + props.mpgGraph.getCyrrentCateoryName();
+      itemPriority = currentItem.getPriority();
+      itemNetPriority = currentItem.getNetPriority();
+      itemName = currentItem.getName();
+      itemPriority = currentItem.getPriority();
+      existingTags = currentItem.getTags();
+      screenName = "Update " + props.mpgGraph.getCurrentCateoryName();
       if (props.mpgGraph.isCurrentCategoryTag()) {
-        existingParentTags = item.getParents();
-        existingChildTags = item.getChildren();
+        existingParentTags = currentItem.getParents();
+        existingChildTags = currentItem.getChildren();
       }
     }
     this.state = {
@@ -145,8 +179,16 @@ class MpgItemDetailsBase extends React.Component<
       existingChildTags: existingChildTags,
       itemNetPriority: itemNetPriority,
       cardWidth: props.cardWidth,
+      recordingNow: false,
+      audioBuffer: new AudioBuffer(),
+      recording: false,
+      micStream: 0
     };
   }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // init data
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  initData = (props: IItemDetailsProps) => {};
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,7 +220,8 @@ class MpgItemDetailsBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   goBack = async () => {
     // this.props.history.push("/Search");
-    this.props.history.goBack()
+    // this.props.history.goBack()
+    this.props.goBack();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // renderItemTags
@@ -211,6 +254,10 @@ class MpgItemDetailsBase extends React.Component<
     let saveIconColor = this.state.itemDataChanged
       ? MpgTheme.palette.secondary.main
       : MpgTheme.palette.primary.contrastText;
+
+    let audioIconColor = this.state.recordingNow
+      ? MpgTheme.palette.secondary.main
+      : MpgTheme.palette.primary.contrastText;
     return (
       <Card
         elevation={1}
@@ -230,30 +277,49 @@ class MpgItemDetailsBase extends React.Component<
               margin: 0
             }}
           >
-            <Icon
-              onClick={this.goBack}
-              style={{
-                margin: 5,
-                color: MpgTheme.palette.primary.contrastText,
-                fontSize: 18,
-                fontWeight:'bold'
-              }}
-            >
-              keyboard_backspace
-            </Icon>
+            <div style={{ display: "flex" }}>
+              <Icon
+                onClick={this.goBack}
+                style={{
+                  margin: 5,
+                  color: MpgTheme.palette.primary.contrastText,
+                  fontSize: 18,
+                  fontWeight: "bold"
+                }}
+              >
+                keyboard_backspace
+              </Icon>
+              <Icon
+                onClick={this.handleSave}
+                style={{
+                  margin: 5,
+                  color: saveIconColor,
+                  fontSize: 18,
+                  fontWeight: "bold"
+                }}
+              >
+                save
+              </Icon>
+            </div>
             <Typography
               variant="h6"
-              style={{ color: MpgTheme.palette.primary.contrastText,
-              fontWeight:'bold' }}
+              style={{
+                color: MpgTheme.palette.primary.contrastText,
+                fontWeight: "bold"
+              }}
             >
               {this.state.screenTitle}
             </Typography>
             <Icon
-              onClick={this.handleSave}
-              style={{ margin: 5, color: saveIconColor, fontSize: 18,
-                fontWeight:'bold' }}
+              onClick={this.startStopRecording}
+              style={{
+                margin: 5,
+                color: audioIconColor,
+                fontSize: 18,
+                fontWeight: "bold"
+              }}
             >
-              save
+              mic
             </Icon>
           </div>
           <Card>
@@ -269,12 +335,13 @@ class MpgItemDetailsBase extends React.Component<
                 id="itemName"
                 label="Name"
                 value={this.state.itemName}
+                multiline
                 margin="normal"
                 style={{ marginLeft: 10, marginRight: 10, width: "95%" }}
                 onChange={this.handleItemNameChange}
-                onKeyPress={this.handleKeyPressed}
+                // onKeyPress={this.handleKeyPressed}
                 autoFocus={true}
-                onBlur={this.saveCurrentItem}
+                // onBlur={this.saveCurrentItem}
               />
               <div style={{ display: "flex" }}>
                 <TextField
@@ -318,6 +385,81 @@ class MpgItemDetailsBase extends React.Component<
   saveAndClose = async () => {
     await this.saveCurrentItem();
     await this.goBack();
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // startStopRecording
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  startStopRecording = async () => {
+    this.props.mpgLogger.debug(
+      "StartStoprecotding: this.state.recordingNow",
+      this.state.recordingNow
+    );
+    if (!this.state.recordingNow) {
+      this.setState({ recordingNow: true });
+      this.startRecording();
+    } else {
+      this.setState({ recordingNow: false });
+      this.stopRecording();
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // start recordsing
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  startRecording = async () => {
+    this.props.mpgLogger.debug("start recording");
+    let audioBuffer = this.state.audioBuffer;
+    audioBuffer.reset();
+
+    window.navigator.mediaDevices
+      .getUserMedia({ video: false, audio: true })
+      .then(stream => {
+        const startMic = new mic();
+
+        startMic.setStream(stream);
+        startMic.on("data", (chunk: any) => {
+          var raw = mic.toRaw(chunk);
+          if (raw == null) {
+            return;
+          }
+          audioBuffer.addData(raw);
+        });
+        this.setState({ recordingNow: true, micStream: startMic });
+      });
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // stop recording
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  stopRecording = async () => {
+    this.props.mpgLogger.debug("stop recording");
+    // const { finishRecording } = props;
+    let micStream = this.state.micStream;
+    micStream.stop();
+    this.setState({ micStream: null, recordingNow: false });
+    // setMicStream(null);
+    // setRecording(false);
+    let audioBuffer = this.state.audioBuffer;
+    const resultBuffer = audioBuffer.getData();
+    this.props.mpgLogger.debug("stop recording: resultBuffer",resultBuffer);
+    this.convertFromBuffer(resultBuffer);
+    // if (typeof finishRecording === "function") {
+    //   finishRecording(resultBuffer);
+    // }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // convert from buffer
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  convertFromBuffer = (bytes: any) => {
+    this.props.mpgLogger.debug("Converting text...");
+    Predictions.convert({
+      transcription: {
+        source: {
+          bytes
+        },
+        language: "en-GB",
+      }
+    })
+      .then(({ transcription: { fullText } }) => this.props.mpgLogger.debug(fullText))
+      .catch(err => this.props.mpgLogger.debug("Error from convert",JSON.stringify(err, null, 2)));
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // showEntriesWithTags
@@ -508,7 +650,7 @@ class MpgItemDetailsBase extends React.Component<
   renderActionIcons = () => {
     let saveIconColor = this.state.itemDataChanged
       ? MpgTheme.palette.primary.contrastText
-      : MpgTheme.palette.primary.light
+      : MpgTheme.palette.primary.light;
     return (
       <div
         style={{
@@ -517,12 +659,16 @@ class MpgItemDetailsBase extends React.Component<
           display: "flex",
           justifyContent: "space-between",
           margin: 0,
-          backgroundColor: this.props.primaryColor
+          backgroundColor: MpgTheme.palette.primary.main
         }}
       >
         <Icon
           onClick={this.goBack}
-          style={{ margin: 5, color: MpgTheme.palette.primary.contrastText, fontSize: 18 }}
+          style={{
+            margin: 5,
+            color: MpgTheme.palette.primary.contrastText,
+            fontSize: 18
+          }}
         >
           view_headline
         </Icon>
@@ -785,7 +931,7 @@ class MpgItemDetailsBase extends React.Component<
       </div>
     );
   };
-   ///////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////
   // render Add Child tags
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderAddChildTags = () => {
@@ -1560,7 +1706,9 @@ class MpgItemDetailsBase extends React.Component<
     } else {
       const tag = this.props.mpgGraph.getTagById(id);
       if (tag !== undefined) {
-        if(this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId,tag)){
+        if (
+          this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId, tag)
+        ) {
           const newTags = this.state.existingParentTags;
           newTags.push(tag);
           await this.setState({
@@ -1570,8 +1718,10 @@ class MpgItemDetailsBase extends React.Component<
             itemDataChanged: true
           });
           await this.saveCurrentItem();
-        }else{
-          this.props.showMessage('Cannot add parent. It is already in ancestors or decsendants')
+        } else {
+          this.props.showMessage(
+            "Cannot add parent. It is already in ancestors or decsendants"
+          );
         }
         // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
@@ -1616,7 +1766,9 @@ class MpgItemDetailsBase extends React.Component<
     } else {
       const tag = this.props.mpgGraph.getTagById(id);
       if (tag !== undefined) {
-        if(this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId,tag)){
+        if (
+          this.props.mpgGraph.isAddingItemSafe(this.state.currentItemId, tag)
+        ) {
           const newTags = this.state.existingChildTags;
           newTags.push(tag);
           await this.setState({
@@ -1626,8 +1778,10 @@ class MpgItemDetailsBase extends React.Component<
             itemDataChanged: true
           });
           await this.saveCurrentItem();
-        }else{
-          this.props.showMessage('Cannot add parent. It is already in ancestors or decsendants')
+        } else {
+          this.props.showMessage(
+            "Cannot add parent. It is already in ancestors or decsendants"
+          );
         }
         // await this.setState({ itemsWithTags: this.getEntriesWithAllTags() });
       } else {
@@ -1802,7 +1956,7 @@ class MpgItemDetailsBase extends React.Component<
       currentItemId: newProps.currentItemId,
       allTags: newProps.allTags,
       allEntries: newProps.allEntries,
-      cardWidth: newProps.cardWidth,
+      cardWidth: newProps.cardWidth
     });
     this.setCreateOrUpdateMode();
   };
@@ -1841,9 +1995,9 @@ class MpgItemDetailsBase extends React.Component<
           selectedEntries: item.getEntries(),
           itemsWithTags: entriesWithTags,
           showRelatedItems: this.showRelatedItems(),
-          screenTitle: "Update " + this.props.mpgGraph.getCyrrentCateoryName(),
+          screenTitle: "Update " + this.props.mpgGraph.getCurrentCateoryName(),
           existingParentTags: existingParentTags,
-          existingChildTags: existingChildTags,
+          existingChildTags: existingChildTags
         });
       } else {
         this.props.mpgLogger.unexpectedError(
@@ -1861,7 +2015,7 @@ class MpgItemDetailsBase extends React.Component<
         selectedEntries: [],
         itemsWithTags: [],
         showRelatedItems: this.showRelatedItems(),
-        screenTitle: "New " + this.props.mpgGraph.getCyrrentCateoryName(),
+        screenTitle: "New " + this.props.mpgGraph.getCurrentCateoryName(),
         existingParentTags: []
       });
     }
@@ -2018,7 +2172,7 @@ class MpgItemDetailsBase extends React.Component<
             this.state.existingTags,
             this.state.existingParentTags,
             this.state.existingChildTags,
-            this.state.selectedEntries,
+            this.state.selectedEntries
           );
           // const currentItemId = this.props.mpgGraph.getCurrentItemId();
           await this.setState({
@@ -2074,6 +2228,11 @@ class MpgItemDetailsBase extends React.Component<
     //   this.nameInput.focus();
     // }
     this.setCreateOrUpdateMode();
+    const appLocation: AppLocation = {
+      page: AppPage.Details,
+      itemId: this.state.currentItemId
+    };
+    this.props.addPage2Histor(appLocation);
   };
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////

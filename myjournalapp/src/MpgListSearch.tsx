@@ -23,7 +23,9 @@ import MpgTheme from "./MpgTheme";
 import MpgItemListComp from "./MpgItemListComp";
 import MpgTreeComp from "./MpgTreeComp";
 // import MpgTreeComp from "./MpgD3Test";
-import { ListSearchState, CurrentCategoryType } from "./MpgGraph";
+import { ListSearchState} from "./MpgGraph";
+import { AppLocation, AppPage } from "./MpgApp";
+import { MpgCategoryType} from "./MpgInitialCategories";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,7 +43,14 @@ interface ListISearchProps extends RouteComponentProps {
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   allViews: MpgItem[];
   listSearchState: ListSearchState;
-  currentItemType: CurrentCategoryType;
+  // currentItemType: CurrentCategoryType;
+  addPage2Histor: Function
+  goBack: Function
+  searchText: string
+  searchTags: MpgItem[]
+  listSearchCategoryType: MpgCategoryType
+  createNewItem: Function
+  updateItem: Function
 }
 interface IListSearchState {
   tagSearchText: string;
@@ -52,7 +61,7 @@ interface IListSearchState {
   deleteInProgress: boolean;
   cardWidth: number;
   nameSearchText: string;
-  currentItemType: CurrentCategoryType;
+  // currentCategoryType: CurrentCategoryType;
   itemsToSearch: MpgItem[];
   allTags: MpgItem[];
   allEntries: MpgItem[];
@@ -61,6 +70,7 @@ interface IListSearchState {
   listSearchState: ListSearchState;
   items2Show: MpgItem[];
   numberOfItems: number;
+  listSearchCategoryType: MpgCategoryType
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgListSearch class
@@ -80,11 +90,11 @@ class MpgListSearchBase extends React.Component<
       tagSearchText: "",
       tagListVisible: false,
       matchedTags: [],
-      existingTags: [],
+      existingTags: props.searchTags,
       deleteInProgress: false,
       cardWidth: props.cardWidth,
-      nameSearchText: "",
-      currentItemType: props.currentItemType,
+      nameSearchText: props.searchText,
+      // currentCategoryType: props.currentItemType,
       itemsToSearch: this.props.allEntries,
       allEntries: this.props.allEntries,
       allTags: this.props.allTags,
@@ -92,7 +102,8 @@ class MpgListSearchBase extends React.Component<
       matchedItems: [],
       listSearchState: props.listSearchState,
       items2Show: [],
-      numberOfItems: 0
+      numberOfItems: 0,
+      listSearchCategoryType: props.listSearchCategoryType
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -153,7 +164,8 @@ class MpgListSearchBase extends React.Component<
             keyboard_backspace
           </Icon>
           <Select
-            value={this.state.currentItemType}
+            // value={this.state.currentCategoryType}
+            value={this.state.listSearchCategoryType}
             onChange={this.handleSearchItemTypeChange}
             inputProps={{
               name: "Search for",
@@ -199,28 +211,46 @@ class MpgListSearchBase extends React.Component<
   handleSearchItemTypeChange = async (event: any) => {
     const type = event.target.value;
     // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
-    await this.props.mpgGraph.setCurrentItemType(type);
+    // await this.props.mpgGraph.setCurrentItemType(type);
+    await this.setState({listSearchCategoryType: type})
     // await this.setState({currentItemType: type})
-    // await this.setItems2Show()
+    await this.setItems2Show()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // goback
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   goBack = async () => {
-    this.props.history.goBack();
+    // this.props.history.goBack();
+    this.props.goBack()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // handle search item type change
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // setItems2SearchOLD = async () => {
+  //   switch (this.state.currentCategoryType) {
+  //     case CurrentCategoryType.Entry:
+  //       await this.setState({ itemsToSearch: this.state.allEntries });
+  //       break;
+  //     case CurrentCategoryType.View:
+  //       await this.setState({ itemsToSearch: this.state.allViews });
+  //       break;
+  //     case CurrentCategoryType.Tag:
+  //       await this.setState({ itemsToSearch: this.state.allTags });
+  //       break;
+  //   }
+  // };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handle search item type change
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setItems2Search = async () => {
-    switch (this.state.currentItemType) {
-      case CurrentCategoryType.Entry:
+    switch (this.state.listSearchCategoryType) {
+      case MpgCategoryType.Entry:
         await this.setState({ itemsToSearch: this.state.allEntries });
         break;
-      case CurrentCategoryType.View:
+      case MpgCategoryType.View:
         await this.setState({ itemsToSearch: this.state.allViews });
         break;
-      case CurrentCategoryType.Tag:
+      case MpgCategoryType.Tag:
         await this.setState({ itemsToSearch: this.state.allTags });
         break;
     }
@@ -228,17 +258,17 @@ class MpgListSearchBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set search item type from current category
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  setSearcItemType = () => {
-    if (this.props.mpgGraph.isCurrentcategoryEntry()) {
-      this.setState({ currentItemType: CurrentCategoryType.Entry });
-    }
-    if (this.props.mpgGraph.isCurrentCategoryView()) {
-      this.setState({ currentItemType: CurrentCategoryType.View });
-    }
-    if (this.props.mpgGraph.isCurrentCategoryTag()) {
-      this.setState({ currentItemType: CurrentCategoryType.Tag });
-    }
-  };
+  // setSearcItemType = () => {
+  //   if (this.props.mpgGraph.isCurrentcategoryEntry()) {
+  //     this.setState({ listSearchCategoryType: CurrentCategoryType.Entry });
+  //   }
+  //   if (this.props.mpgGraph.isCurrentCategoryView()) {
+  //     this.setState({ currentCategoryType: CurrentCategoryType.View });
+  //   }
+  //   if (this.props.mpgGraph.isCurrentCategoryTag()) {
+  //     this.setState({ currentCategoryType: CurrentCategoryType.Tag });
+  //   }
+  // };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // render search params
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -552,11 +582,16 @@ class MpgListSearchBase extends React.Component<
       allTags: newProps.allTags,
       allViews: newProps.allViews,
       listSearchState: newProps.listSearchState,
-      currentItemType: newProps.currentItemType,
-      cardWidth: newProps.cardWidth
+      // currentCategoryType: newProps.currentItemType,
+      cardWidth: newProps.cardWidth,
+      listSearchCategoryType: newProps.listSearchCategoryType
     });
     // console.log('MpgListSearch: componentWillReceiveProps: newProps:',newProps);
     await this.setItems2Show();
+    // const appLocation: AppLocation = {page: AppPage.List, 
+    //   listSearchState: this.state.listSearchState,
+    //   listSearchCategory: this.state.currentCategoryType}
+    // this.props.addPage2Histor(appLocation)
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set items to show
@@ -579,6 +614,13 @@ class MpgListSearchBase extends React.Component<
         });
         break;
     }
+    const appLocation: AppLocation = {page: AppPage.List, 
+      listSearchState: this.state.listSearchState,
+      listSearchCategory: this.state.listSearchCategoryType,
+      searchText: this.state.nameSearchText,
+      searchTags: this.state.existingTags}
+    // this.props.mpgLogger.debug('MpgListSearch: setItems2Show: appLocation:',appLocation)
+    this.props.addPage2Histor(appLocation)
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle update item (any item)
@@ -620,12 +662,12 @@ class MpgListSearchBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   setMatchedItemByTags = () => {
     let matchedItems: MpgItem[] = [];
-    if (this.state.currentItemType === CurrentCategoryType.Tag) {
+    if (this.state.listSearchCategoryType === MpgCategoryType.Tag) {
       matchedItems = this.props.mpgGraph.getTagssWithAllTags(
         this.state.existingTags
       );
     } else {
-      if (this.state.currentItemType === CurrentCategoryType.Entry) {
+      if (this.state.listSearchCategoryType === MpgCategoryType.Entry) {
         matchedItems = this.props.mpgGraph.getEntriesWithAllTags(
           this.state.existingTags
         );
@@ -672,7 +714,10 @@ class MpgListSearchBase extends React.Component<
   // component did mount
   ///////////////////////////////////////////////////////////////////////////////////////////////
   componentDidMount = async () => {
-    // await this.setListSearchParam()
+    // const appLocation: AppLocation = {page: AppPage.List, 
+    //     listSearchState: this.state.listSearchState,
+    //     listSearchCategory: this.state.currentCategoryType}
+    // this.props.addPage2Histor(appLocation)
   };
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////

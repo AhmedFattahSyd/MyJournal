@@ -200,6 +200,18 @@ class MpgItemListCompBase extends React.Component<
           edit
         </Icon>
         <Icon
+          style={{ fontSize: "20px", color: MpgTheme.palette.secondary.dark }}
+          onClick={event => this.handleIncrementPriority(event, item)}
+        >
+          keyboard_arrow_up
+        </Icon>
+        <Icon
+          style={{ fontSize: "20px", color: MpgTheme.palette.secondary.dark }}
+          onClick={event => this.handleDecrementPriority(event, item)}
+        >
+          keyboard_arrow_down
+        </Icon>
+        <Icon
           style={{ fontSize: "14px", color: MpgTheme.palette.secondary.dark }}
           onClick={event => this.handleItemDelete(event, item)}
         >
@@ -216,6 +228,18 @@ class MpgItemListCompBase extends React.Component<
     await this.props.mpgGraph.setCurrentCategoryId(tag.getCategoryId());
     await this.props.mpgGraph.setCurrentItemId(tag.getId());
     await this.props.history.push("/ItemDetails");
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle increment priority
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleIncrementPriority = async (evet: any, item: MpgItem) => {
+    this.props.mpgGraph.incrementItemPrioroty(item)
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // handle decrement priority
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleDecrementPriority = async (evet: any, item: MpgItem) => {
+    this.props.mpgGraph.decrementItemPrioroty(item)
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle delete icon clicked
