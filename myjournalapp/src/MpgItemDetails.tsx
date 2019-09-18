@@ -106,6 +106,7 @@ interface IItemDetailsState {
   audioBuffer: AudioBuffer;
   recording: boolean;
   micStream: any;
+  resultBuffer: any
   // newItemType: MpgCategoryType | undefined
   // currentItemType: MpgCategory | undefined
 }
@@ -182,7 +183,8 @@ class MpgItemDetailsBase extends React.Component<
       recordingNow: false,
       audioBuffer: new AudioBuffer(),
       recording: false,
-      micStream: 0
+      micStream: 0,
+      resultBuffer: []
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,6 +333,7 @@ class MpgItemDetailsBase extends React.Component<
                 margin: 10
               }}
             >
+              {/* <audio id="player" controls></audio> */}
               <TextField
                 id="itemName"
                 label="Name"
@@ -341,7 +344,7 @@ class MpgItemDetailsBase extends React.Component<
                 onChange={this.handleItemNameChange}
                 // onKeyPress={this.handleKeyPressed}
                 autoFocus={true}
-                // onBlur={this.saveCurrentItem}
+                onBlur={this.saveCurrentItem}
               />
               <div style={{ display: "flex" }}>
                 <TextField
@@ -390,18 +393,38 @@ class MpgItemDetailsBase extends React.Component<
   // startStopRecording
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   startStopRecording = async () => {
-    this.props.mpgLogger.debug(
-      "StartStoprecotding: this.state.recordingNow",
-      this.state.recordingNow
-    );
-    if (!this.state.recordingNow) {
-      this.setState({ recordingNow: true });
-      this.startRecording();
-    } else {
-      this.setState({ recordingNow: false });
-      this.stopRecording();
-    }
+    // this.props.mpgLogger.debug(
+    //   "StartStoprecotding: this.state.recordingNow",
+    //   this.state.recordingNow
+    // );
+    // if (!this.state.recordingNow) {
+    //   this.setState({ recordingNow: true });
+    //   this.startRecording();
+    // } else {
+    //   this.setState({ recordingNow: false });
+    //   this.stopRecording();
+    // }
+    this.recordAndPlay()
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // record and play
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  recordAndPlay = () => {
+    const player: any = document.getElementById('player');
+    this.props.mpgLogger.debug('recordAndPlay: player:',player)
+
+    const handleSuccess = function(stream: any) {
+
+      console.log('recordAndPlay: stream:',stream)
+
+      if (player !== null) {
+        player.src = stream;
+      }
+    };
+  
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(handleSuccess);
+  }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // start recordsing
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -440,6 +463,7 @@ class MpgItemDetailsBase extends React.Component<
     let audioBuffer = this.state.audioBuffer;
     const resultBuffer = audioBuffer.getData();
     this.props.mpgLogger.debug("stop recording: resultBuffer",resultBuffer);
+    this.setState({resultBuffer: resultBuffer})
     this.convertFromBuffer(resultBuffer);
     // if (typeof finishRecording === "function") {
     //   finishRecording(resultBuffer);
@@ -449,7 +473,7 @@ class MpgItemDetailsBase extends React.Component<
   // convert from buffer
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   convertFromBuffer = (bytes: any) => {
-    this.props.mpgLogger.debug("Converting text...");
+    this.props.showMessage("Converting text...");
     Predictions.convert({
       transcription: {
         source: {
@@ -458,8 +482,8 @@ class MpgItemDetailsBase extends React.Component<
         language: "en-GB",
       }
     })
-      .then(({ transcription: { fullText } }) => this.props.mpgLogger.debug(fullText))
-      .catch(err => this.props.mpgLogger.debug("Error from convert",JSON.stringify(err, null, 2)));
+      .then(({ transcription: { fullText } }) => this.setState({itemName: fullText}))
+      .catch(err => this.props.showMessage(JSON.stringify(err, null, 2)));
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // showEntriesWithTags

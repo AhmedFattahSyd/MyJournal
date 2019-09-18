@@ -102,7 +102,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private version = "Beta 9 - released: 13 September 2019";
+  private version = "Beta 10 - released: 18 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   readonly maxCardWidth = 500;
@@ -934,7 +934,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // show message
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  showMessage = (message: string, messageWaitTime: number = 6000) => {
+  showMessage = (message: string, messageWaitTime: number = 60000) => {
     this.setState({
       messageVisible: true,
       message: message,
