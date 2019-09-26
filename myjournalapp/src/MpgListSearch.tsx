@@ -51,6 +51,7 @@ interface ListISearchProps extends RouteComponentProps {
   listSearchCategoryType: MpgCategoryType
   createNewItem: Function
   updateItem: Function
+  setListSearchCategoryType: Function
 }
 interface IListSearchState {
   tagSearchText: string;
@@ -210,11 +211,12 @@ class MpgListSearchBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   handleSearchItemTypeChange = async (event: any) => {
     const type = event.target.value;
-    // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
+    console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
     // await this.props.mpgGraph.setCurrentItemType(type);
-    await this.setState({listSearchCategoryType: type})
+    // await this.setState({listSearchCategoryType: type})
+    await this.props.setListSearchCategoryType(type)
     // await this.setState({currentItemType: type})
-    await this.setItems2Show()
+    // await this.setItems2Show()
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // goback

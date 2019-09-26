@@ -1,3 +1,5 @@
+import { MpgDataClasses } from "./MpgDataClasses";
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg Data Definition Module
 // defines data structure in database (DynamoDB)
@@ -98,4 +100,29 @@ export enum MpgDataServerReturnCode {
 export interface ILambdaResponse {
   StatusCode: string;
   Payload: string;
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// export format
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export interface MpgExportedGrapg {
+  MpgExportedTags: MpgExportedTag[]
+  MpgExportedEntries: MpgExportedEntry[]
+  MpgExportedViews: MpgExportedView[]
+}
+export interface MpgExportedRootItem {
+  name: string
+  class: MpgDataClasses
+  priority: number
+}
+export interface MpgExportedCategory {
+  rootItem: MpgExportedRootItem
+}
+export interface MpgExportedTag{
+  parentTags: MpgExportedTag[]
+}
+export interface MpgExportedEntry{
+  tags: MpgExportedTag[]
+}
+export interface MpgExportedView{
+  tags: MpgExportedTag[]
 }

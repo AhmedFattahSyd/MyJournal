@@ -102,7 +102,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private version = "Alpha 1 - released: 19 September 2019";
+  private version = "Alpha 2 - released: 26 September 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   readonly maxCardWidth = 500;
@@ -280,6 +280,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 listSearchCategoryType={this.state.listSearchCategoryType}
                 createNewItem={this.createNewItem}
                 updateItem={this.updateItem}
+                setListSearchCategoryType={this.setListSearchCategoryType}
               />
             )}
           />
@@ -358,6 +359,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         this.setState({ listSearchState: ListSearchState.List });
         break;
     }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set list search category type
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setListSearchCategoryType = async (category: MpgCategoryType) => {
+    this.setState({ listSearchCategoryType: category });
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // add page to histor
@@ -520,8 +527,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       >
         <SnackbarContent
           style={{
-            backgroundColor: MpgTheme.palette.primary.contrastText,
-            color: MpgTheme.palette.primary.dark
+            backgroundColor: MpgTheme.palette.primary.dark,
+            color: MpgTheme.palette.primary.contrastText
           }}
           message={<span id="message-id">{this.state.message}</span>}
           action={[
@@ -608,19 +615,19 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemText primary="Home" />
           </ListItem>
           <Divider />
-          <ListItem button onClick={event=>this.goToViews}>
+          <ListItem button onClick={event => this.goToViews}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
             <ListItemText primary="Views" />
           </ListItem>
-          <ListItem button onClick={event=>this.goToEntries}>
+          <ListItem button onClick={event => this.goToEntries}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
             <ListItemText primary="Entries" />
           </ListItem>
-          <ListItem button onClick={event=>this.goToTags}>
+          <ListItem button onClick={event => this.goToTags}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
             </ListItemIcon>
@@ -666,6 +673,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             </ListItemIcon>
             <ListItemText primary="Reload data from cloud" />
           </ListItem>
+          <ListItem button onClick={this.exportAllData}>
+            <ListItemIcon>
+              <Icon>cloud_download</Icon>
+            </ListItemIcon>
+            <ListItemText primary="Export data" />
+          </ListItem>
           <Divider />
           <ListItem button onClick={this.handleSignout}>
             <ListItemIcon>
@@ -676,6 +689,38 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         </List>
       </div>
     );
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // export all data
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  exportAllData = async () => {
+    try {
+      // this.download('test.json',"{'text': 'My Personal Graph'}")
+      this.showMessage("Function has not been implemented yet");
+    } catch (err) {
+      this.mpgLogger.unexpectedError(
+        "MpgApp: exportAllData: unable to download file. Error",
+        err
+      );
+    }
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // download text
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  download = async (filename: string, text: string) => {
+    var element = document.createElement("a");
+    element.setAttribute(
+      "href",
+      "data:text/plain;charset=utf-8," + encodeURIComponent(text)
+    );
+    element.setAttribute("download", filename);
+
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // show about message

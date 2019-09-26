@@ -8,7 +8,7 @@ export default createMuiTheme({
     primary: {
       main: blue[700],
       contrastText: "#fff",
-      light: blue[500],
+      light: blue[400],
       dark: blue[900]
     },
     background: {
