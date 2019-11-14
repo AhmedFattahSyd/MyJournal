@@ -27,6 +27,8 @@ interface ISigninProps extends RouteComponentProps {
   mpgUser: MpgUser;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
   mpgGraph: MpgGraph
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface ISigninState {
   userName: string;
@@ -59,6 +61,8 @@ class MpgSigninBase extends React.Component<ISigninProps, ISigninState> {
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

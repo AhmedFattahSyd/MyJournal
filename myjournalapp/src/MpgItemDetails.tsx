@@ -25,28 +25,6 @@ import MpgCategory from "./MpgCategory";
 import MpgTheme from "./MpgTheme";
 import MpgItemListComp from "./MpgItemListComp";
 import { AppLocation, AppPage } from "./MpgApp";
-import { Predictions } from "aws-amplify";
-import mic from "microphone-stream";
-class AudioBuffer {
-  private buffer: any = [];
-  add = (raw: any) => {
-    this.buffer = this.buffer.concat(...raw);
-    return this.buffer;
-  };
-  newBuffer = () => {
-    console.log("reseting buffer");
-    this.buffer = [];
-  };
-  reset = () => {
-    this.newBuffer();
-  };
-  addData = (raw: any) => {
-    return this.add(raw);
-  };
-  getData = () => {
-    return this.buffer;
-  };
-}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // define interfaces for state and props
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +47,8 @@ interface IItemDetailsProps extends RouteComponentProps {
   cardWidth: number;
   addPage2Histor: Function;
   goBack: Function;
-  // currentItemType: MpgCategoryType
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface IItemDetailsState {
   currentCategoryId: string;
@@ -102,13 +81,6 @@ interface IItemDetailsState {
   screenTitle: string;
   deleteInProgress: boolean;
   cardWidth: number;
-  recordingNow: boolean;
-  audioBuffer: AudioBuffer;
-  recording: boolean;
-  micStream: any;
-  resultBuffer: any
-  // newItemType: MpgCategoryType | undefined
-  // currentItemType: MpgCategory | undefined
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // MPG Item Details class
@@ -118,9 +90,7 @@ class MpgItemDetailsBase extends React.Component<
   IItemDetailsState
 > {
   readonly addNewTagId = "ADD_NEW_TAG_ID";
-  // readonly addNewGoalId = "ADD_NEW_GOAL_ID";
   readonly addNewEntryId = "ADD_NEW_ENTRY_ID";
-  private audioFile: any;
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,11 +150,6 @@ class MpgItemDetailsBase extends React.Component<
       existingChildTags: existingChildTags,
       itemNetPriority: itemNetPriority,
       cardWidth: props.cardWidth,
-      recordingNow: false,
-      audioBuffer: new AudioBuffer(),
-      recording: false,
-      micStream: 0,
-      resultBuffer: []
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -201,6 +166,8 @@ class MpgItemDetailsBase extends React.Component<
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -256,10 +223,6 @@ class MpgItemDetailsBase extends React.Component<
     let saveIconColor = this.state.itemDataChanged
       ? MpgTheme.palette.secondary.main
       : MpgTheme.palette.primary.contrastText;
-
-    let audioIconColor = this.state.recordingNow
-      ? MpgTheme.palette.secondary.main
-      : MpgTheme.palette.primary.contrastText;
     return (
       <Card
         elevation={1}
@@ -291,17 +254,6 @@ class MpgItemDetailsBase extends React.Component<
               >
                 keyboard_backspace
               </Icon>
-              <Icon
-                onClick={this.handleSave}
-                style={{
-                  margin: 5,
-                  color: saveIconColor,
-                  fontSize: 18,
-                  fontWeight: "bold"
-                }}
-              >
-                save
-              </Icon>
             </div>
             <Typography
               variant="h6"
@@ -313,16 +265,16 @@ class MpgItemDetailsBase extends React.Component<
               {this.state.screenTitle}
             </Typography>
             <Icon
-              onClick={this.startStopRecording}
-              style={{
-                margin: 5,
-                color: audioIconColor,
-                fontSize: 18,
-                fontWeight: "bold"
-              }}
-            >
-              mic
-            </Icon>
+                onClick={this.handleSave}
+                style={{
+                  margin: 5,
+                  color: saveIconColor,
+                  fontSize: 18,
+                  fontWeight: "bold"
+                }}
+              >
+                save
+              </Icon>
           </div>
           <Card>
             <div
@@ -390,102 +342,6 @@ class MpgItemDetailsBase extends React.Component<
     await this.goBack();
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // startStopRecording
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  startStopRecording = async () => {
-    // this.props.mpgLogger.debug(
-    //   "StartStoprecotding: this.state.recordingNow",
-    //   this.state.recordingNow
-    // );
-    // if (!this.state.recordingNow) {
-    //   this.setState({ recordingNow: true });
-    //   this.startRecording();
-    // } else {
-    //   this.setState({ recordingNow: false });
-    //   this.stopRecording();
-    // }
-    this.recordAndPlay()
-  };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // record and play
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  recordAndPlay = () => {
-    const player: any = document.getElementById('player');
-    this.props.mpgLogger.debug('recordAndPlay: player:',player)
-
-    const handleSuccess = function(stream: any) {
-
-      console.log('recordAndPlay: stream:',stream)
-
-      if (player !== null) {
-        player.src = stream;
-      }
-    };
-  
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        .then(handleSuccess);
-  }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // start recordsing
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  startRecording = async () => {
-    this.props.mpgLogger.debug("start recording");
-    let audioBuffer = this.state.audioBuffer;
-    audioBuffer.reset();
-
-    window.navigator.mediaDevices
-      .getUserMedia({ video: false, audio: true })
-      .then(stream => {
-        const startMic = new mic();
-
-        startMic.setStream(stream);
-        startMic.on("data", (chunk: any) => {
-          var raw = mic.toRaw(chunk);
-          if (raw == null) {
-            return;
-          }
-          audioBuffer.addData(raw);
-        });
-        this.setState({ recordingNow: true, micStream: startMic });
-      });
-  };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // stop recording
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  stopRecording = async () => {
-    this.props.mpgLogger.debug("stop recording");
-    // const { finishRecording } = props;
-    let micStream = this.state.micStream;
-    micStream.stop();
-    this.setState({ micStream: null, recordingNow: false });
-    // setMicStream(null);
-    // setRecording(false);
-    let audioBuffer = this.state.audioBuffer;
-    const resultBuffer = audioBuffer.getData();
-    this.props.mpgLogger.debug("stop recording: resultBuffer",resultBuffer);
-    this.setState({resultBuffer: resultBuffer})
-    this.convertFromBuffer(resultBuffer);
-    // if (typeof finishRecording === "function") {
-    //   finishRecording(resultBuffer);
-    // }
-  };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // convert from buffer
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  convertFromBuffer = (bytes: any) => {
-    this.props.showMessage("Converting text...");
-    Predictions.convert({
-      transcription: {
-        source: {
-          bytes
-        },
-        language: "en-GB",
-      }
-    })
-      .then(({ transcription: { fullText } }) => this.setState({itemName: fullText}))
-      .catch(err => this.props.showMessage(JSON.stringify(err, null, 2)));
-  };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // showEntriesWithTags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   showEntriesWithTags = (): boolean => {
@@ -509,117 +365,6 @@ class MpgItemDetailsBase extends React.Component<
     return (
       this.props.mpgGraph.isCurrentCategoryView() ||
       this.props.mpgGraph.isCurrentCategoryTag()
-    );
-  };
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // render entries with tags
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  renderEntriesWithTagsOLD = () => {
-    // const cardWidth = (window.innerWidth > 500)? 480 : window.innerWidth
-    // const theme = createMuiTheme();
-    // const background = theme.palette.background
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-around",
-          flexDirection: "column"
-        }}
-      >
-        <Typography
-          style={{
-            fontSize: "14px",
-            fontWeight: "bold",
-            color: MpgTheme.palette.primary.dark
-          }}
-        >
-          Items with tags
-        </Typography>
-        {this.state.itemsWithTags.map(item => (
-          <Card
-            key={item.getId()}
-            elevation={1}
-            style={{
-              // maxWidth: cardWidth,
-              // minWidth: cardWidth,
-              marginBottom: 5
-            }}
-          >
-            <CardActionArea>
-              <CardContent>
-                <Typography
-                  style={{ fontSize: "12px", fontWeight: "bold" }}
-                  align="left"
-                >
-                  {item.getName()}
-                </Typography>
-                <Typography style={{ fontSize: "10px" }} align="left">
-                  Priority: {item.getNetPriority()} ({item.getPriority()})
-                </Typography>
-                {/* <Typography
-                    style={{ fontSize: "10px" }}
-                    align="left"
-                  >
-                    Tags: {this.props.mpgGraph.getTagNames(item)}
-                  </Typography> */}
-                <div style={{ display: "flex", flexWrap: "wrap" }}>
-                  {item.getTags().map(tag => (
-                    <Chip
-                      key={tag.getId()}
-                      label={tag.getName()}
-                      color="primary"
-                      onDelete={event =>
-                        this.handleTagDelete4Item(event, item, tag)
-                      }
-                      onClick={event =>
-                        this.handleTagUpdate4Item(event, item, tag)
-                      }
-                      variant="outlined"
-                      style={{ margin: "1px", fontSize: "8px" }}
-                      size="small"
-                    />
-                  ))}
-                </div>
-                {true ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      paddingTop: "5px"
-                    }}
-                  >
-                    <Icon
-                      style={{
-                        fontSize: "20px",
-                        color: MpgTheme.palette.primary.main
-                      }}
-                      onClick={event =>
-                        this.handleItemWithTagsUpdate(event, item.getId())
-                      }
-                    >
-                      edit
-                    </Icon>
-                    <Icon
-                      style={{
-                        fontSize: "20px",
-                        color: MpgTheme.palette.primary.main
-                      }}
-                      onClick={event =>
-                        this.handleDeleteRelatedItem(event, item.getId())
-                      }
-                    >
-                      delete
-                    </Icon>
-                  </div>
-                ) : (
-                  <div />
-                )}
-              </CardContent>
-            </CardActionArea>
-            {/* </Link> */}
-          </Card>
-        ))}
-      </div>
     );
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -728,7 +473,7 @@ class MpgItemDetailsBase extends React.Component<
   //   this.props.history.goBack()
   // }
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  // render add axtions
+  // render add entry
   ///////////////////////////////////////////////////////////////////////////////////////////////
   renderAddEntry = () => {
     return (
@@ -1352,7 +1097,7 @@ class MpgItemDetailsBase extends React.Component<
       );
       if (newEntry !== undefined) {
         // save the action
-        await this.props.mpgGraph.saveEntry(newEntry);
+        await this.props.mpgGraph.saveItem(newEntry);
         await this.props.mpgGraph.addTagsToItem(
           newEntry,
           this.getCurrentTags()

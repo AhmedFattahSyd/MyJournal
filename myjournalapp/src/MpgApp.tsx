@@ -45,7 +45,8 @@ import Home from "@material-ui/icons/Home";
 import CancelPresentation from "@material-ui/icons/CancelPresentation";
 import blue from "@material-ui/core/colors/blue";
 import MpgHome from "./MpgHome";
-import { MpgCategoryType } from "./MpgInitialCategories";
+import { MpgCategoryType } from "./MpgInitialCategories"; 
+import MpgSettings from "./MpgSettings";
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // app location interface
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,14 +103,14 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private version = "Alpha 2 - released: 26 September 2019";
+  private version = "Alpha 4 - released: 14 November 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   readonly maxCardWidth = 500;
   private pageHistory: AppLocation[] = [];
   private searchText: string = "";
   private searchTags: MpgItem[] = [];
-  // private listSearchCategoryTyepe: MpgCategoryType = MpgCategoryType.View
+  private currentContext: MpgItem | undefined
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,7 +147,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
           : this.maxCardWidth,
       currentItem: undefined,
       createUpdateMode: MpgCreateUpdateMode.Create,
-      listSearchCategoryType: MpgCategoryType.View
+      listSearchCategoryType: MpgCategoryType.View,
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -207,32 +208,41 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 addPage2Histor={this.addPage2History}
                 goBack={this.goBack}
                 goToList={this.goToList}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
-          {/* <Route
-          path="/ItemList"
-          render={props => (
-            <MpgItemList
-              {...props}
-              toggleSidebarVisibility={this.toggleSidebarVisibility}
-              showMessage={this.showMessage}
-              userSignedIn={this.state.userSignedIn}
-              currentCategoryId={this.currentCategoryId}
-              mpgGraph={this.mpgGraph}
-              mpgLogger={this.mpgLogger}
-              filteredItems={this.filteredItems}
-              currentItemId={this.currentItemId}
-              allCategories={this.allCategories}
-              displayMode={this.displayMode}
-              allTags={this.allTags}
-              allEnteries={this.allEntries}
-              goToNewEntry={this.goToNewEntry}
-              primaryColor={this.primaryColor}
-              windowWidth={this.state.windowWidth}
-            />
-          )}
-        /> */}
+            <Route
+            path="/UserPref"
+            render={props => (
+              <MpgSettings
+                {...props}
+                toggleSidebarVisibility={this.toggleSidebarVisibility}
+                showMessage={this.showMessage}
+                userSignedIn={this.state.userSignedIn}
+                mpgGraph={this.mpgGraph}
+                mpgLogger={this.mpgLogger}
+                allCategories={this.allCategories}
+                filteredItems={this.filteredItems}
+                currentItemId={this.currentItemId}
+                currentCategoryId={this.currentCategoryId}
+                createOrUpdateMode={this.displayMode}
+                allTags={this.allTags}
+                allEnteries={this.allEntries}
+                goToNewEntry={this.goToNewEntry}
+                displayMode={this.displayMode}
+                cardWidth={this.state.cardWidth}
+                addPage2Histor={this.addPage2History}
+                goBack={this.goBack}
+                goToList={this.goToList}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
+                allViews={this.allViews}
+                currentContext={this.currentContext}
+              />
+            )}
+          />
           <Route
             path="/ItemDetails"
             render={props => (
@@ -254,6 +264,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 cardWidth={this.state.cardWidth}
                 addPage2Histor={this.addPage2History}
                 goBack={this.goBack}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -281,6 +293,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 createNewItem={this.createNewItem}
                 updateItem={this.updateItem}
                 setListSearchCategoryType={this.setListSearchCategoryType}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -292,6 +306,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 toggleSidebarVisibility={this.toggleSidebarVisibility}
                 goToNewEntry={this.goToNewEntry}
                 mpgGraph={this.mpgGraph}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -303,6 +319,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 toggleSidebarVisibility={this.toggleSidebarVisibility}
                 mpgGraph={this.mpgGraph}
                 goToNewEntry={this.goToNewEntry}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -314,6 +332,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 toggleSidebarVisibility={this.toggleSidebarVisibility}
                 mpgGraph={this.mpgGraph}
                 goToNewEntry={this.goToNewEntry}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -328,6 +348,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 mpgUser={this.mpgUser}
                 goToNewEntry={this.goToNewEntry}
                 mpgGraph={this.mpgGraph}
+                goToCurrentContext={this.goToCurrentContext}
+                isCurrentContextSet={this.isCurrentContextSet}
               />
             )}
           />
@@ -360,6 +382,26 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
         break;
     }
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // goToCurrentContext
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  goToCurrentContext = ()=>{
+    this.showMessage('This function has not been implemented yet')
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is current context set
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isCurrentContextSet = (): boolean =>{
+    return this.mpgGraph.isCurrentContextSet()
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // create item from speech
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  createItemFromSpeech = (name: string)=>{
+    this.mpgLogger.debug("Creating item:",name);
+  }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set list search category type
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -615,6 +657,13 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             <ListItemText primary="Home" />
           </ListItem>
           <Divider />
+          <ListItem button onClick={this.goToSettings}>
+            <ListItemIcon>
+            <Icon>settings_applications</Icon>
+            </ListItemIcon>
+            <ListItemText primary="Settings" />
+          </ListItem>
+          <Divider />
           <ListItem button onClick={event => this.goToViews}>
             <ListItemIcon>
               <Icon>view_headline</Icon>
@@ -696,7 +745,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   exportAllData = async () => {
     try {
       // this.download('test.json',"{'text': 'My Personal Graph'}")
-      this.showMessage("Function has not been implemented yet");
+      this.showMessage("Sorry, function has not been implemented yet");
     } catch (err) {
       this.mpgLogger.unexpectedError(
         "MpgApp: exportAllData: unable to download file. Error",
@@ -857,6 +906,15 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       ? this.props.history.push("/Home")
       : this.props.history.push("/landing");
   };
+   ///////////////////////////////////////////////////////////////////////////////////////////////
+  // go user settings
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  goToSettings = () => {
+    this.showMessage("This function has not been implemented yet")
+    // this.state.userSignedIn
+    //   ? this.props.history.push("/UserPref")
+    //   : this.props.history.push("/landing");
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // render error page
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -947,7 +1005,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     allEntries: MpgItem[],
     allViews: MpgItem[],
     currentItemType: CurrentCategoryType,
-    listSearchState: ListSearchState
+    listSearchState: ListSearchState,
+    currentContext: MpgItem | undefined,
   ) => {
     // console.log('MpgApp: dataRefreshed: currentItemType: ',currentItemType);
     this.allCategories = allCategories;
@@ -958,6 +1017,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     this.allTags = allTags;
     this.allEntries = allEntries;
     this.allViews = allViews;
+    this.currentContext = currentContext
     // set state for variables that affect rendering of this component
     await this.setState({
       appError: error,

@@ -42,6 +42,8 @@ interface IHomeProps extends RouteComponentProps {
   addPage2Histor: Function
   goBack: Function
   goToList: Function
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface IHomeState {
   allCategories: MpgCategory[];
@@ -79,6 +81,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -126,6 +130,8 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
         toggleSidebarVisibility={this.props.toggleSidebarVisibility}
         goToNewEntry={this.props.goToNewEntry}
         mpgGraph={this.props.mpgGraph}
+        goToCurrentContext={this.props.goToCurrentContext}
+        isCurrentContextSet={this.props.isCurrentContextSet}
       />
     );
   };

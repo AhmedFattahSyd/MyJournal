@@ -15,6 +15,8 @@ interface ILandingProps extends RouteComponentProps {
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void
   mpgGraph: MpgGraph
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface ILandingState {}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +36,8 @@ class MpgLanding extends React.Component<ILandingProps, ILandingState> {
         <MpgAppBar toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
            />
         <div style={{ paddingTop: 59 }}> </div>
         <div
@@ -67,7 +71,7 @@ class MpgLanding extends React.Component<ILandingProps, ILandingState> {
               Welcome to
                 </Typography>
             <Typography variant="h6" color='primary'>
-              My Journal
+              My Graph
                 </Typography>
             <Divider style={{ margin: '10px' }} />
             <Typography variant="body1" color='textPrimary'>

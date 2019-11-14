@@ -26,6 +26,8 @@ interface IConfirmSignupProps extends RouteComponentProps {
   goToNewEntry: (
     event: React.MouseEvent<HTMLSpanElement, MouseEvent>
   ) => void
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface IConfirmSignupState {
   userName: string;
@@ -65,6 +67,9 @@ class MpgConfirmSignupBase extends React.Component<
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
+         
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

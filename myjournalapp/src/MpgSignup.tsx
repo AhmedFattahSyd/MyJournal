@@ -24,6 +24,8 @@ interface ISignupProps extends RouteComponentProps {
   ) => void;
   mpgGraph: MpgGraph;
   goToNewEntry: (event: React.MouseEvent<HTMLSpanElement, MouseEvent>) => void;
+  goToCurrentContext: Function
+  isCurrentContextSet: Function
 }
 interface ISignupState {
   userName: string;
@@ -60,6 +62,8 @@ class MpgSignupBase extends React.Component<ISignupProps, ISignupState> {
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           goToNewEntry={this.props.goToNewEntry}
           mpgGraph={this.props.mpgGraph}
+          goToCurrentContext={this.props.goToCurrentContext}
+          isCurrentContextSet={this.props.isCurrentContextSet}
         />
         <div style={{ paddingTop: 59 }}> </div>
         <div

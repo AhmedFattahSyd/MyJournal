@@ -211,6 +211,14 @@ class MpgItemListCompBase extends React.Component<
         >
           keyboard_arrow_down
         </Icon>
+        <div>
+        <Icon
+          style={{ fontSize: "14px", color: MpgTheme.palette.secondary.dark }}
+          onClick={event => this.handleItemPark(event, item)}
+        >
+          query_builder
+        </Icon>
+        </div>
         <Icon
           style={{ fontSize: "14px", color: MpgTheme.palette.secondary.dark }}
           onClick={event => this.handleItemDelete(event, item)}
@@ -246,6 +254,12 @@ class MpgItemListCompBase extends React.Component<
   ///////////////////////////////////////////////////////////////////////////////////////////////
   handleItemDelete = async (event: React.MouseEvent, item: MpgItem) => {
     await this.props.mpgGraph.deleteItem(item);
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // park clicked
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  handleItemPark = async (event: React.MouseEvent, item: MpgItem) => {
+    await this.props.mpgGraph.parkItem(item);
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle tag delete for item

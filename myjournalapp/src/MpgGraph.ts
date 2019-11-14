@@ -9,7 +9,7 @@ import { MpgDataClasses, MpgRelNames } from "./MpgDataClasses";
 import { MpgItemRecord as MpgDataRecord } from "./MpgDataDef";
 import { MpgInitialCategories, MpgCategoryType } from "./MpgInitialCategories";
 import { MpgDataProxy, MpgDataMode } from "./MpgDataProxy";
-import MpgItem from "./MpgItem";
+import MpgItem, { ItemState } from "./MpgItem";
 import MpgRel from "./MpgRel";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // display mode mode
@@ -61,6 +61,8 @@ export default class MpgGraph {
   private allViews: MpgItem[] = [];
   private currentCategoryType: CurrentCategoryType = CurrentCategoryType.Entry;
   private listSearchState: ListSearchState = ListSearchState.List;
+  readonly myCurrentContextText = 'My Current Context'
+  private currentContextId: string = ''
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -266,7 +268,8 @@ export default class MpgGraph {
       this.allEntries,
       this.allViews,
       this.currentCategoryType,
-      this.listSearchState
+      this.listSearchState,
+      this.getCurrentContext(),
     );
   };
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,17 +288,33 @@ export default class MpgGraph {
     }
     return action;
   };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // create view (without saving it)
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  createViewInstance = (
+    name: string,
+    importance: number = 0
+  ): MpgItem | undefined => {
+    let action: MpgItem | undefined = undefined;
+    const viewCategoryId = this.getViewCategoryId();
+    if (viewCategoryId !== undefined) {
+      action = new MpgItem(viewCategoryId, name, importance);
+      this.allItems.push(action);
+      this.allViews.push(action);
+    }
+    return action;
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // save entry
+  // save item
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  saveEntry = async (entry: MpgItem) => {
+  saveItem = async (item: MpgItem) => {
     // this.mpgLogger.debug(`MpgGraph: createItem: item importance:${importance}`)
     try {
       await this.mpgDataProxy.createDataRecord(
-        this.copyItemToDataRecord(entry)
+        this.copyItemToDataRecord(item)
       );
     } catch (err) {
-      this.error = new MpgError("MpgGraph: saveGoal:" + (err as Error).message);
+      this.error = new MpgError("MpgGraph: saveItem:" + (err as Error).message);
       this.unexpectedError = true;
     }
   };
@@ -430,11 +449,47 @@ export default class MpgGraph {
     this.allItems.forEach(item => {
       const itemTypeId = item.getCategoryId();
       if (itemTypeId === this.getEntryCategoryId()) {
-        this.allEntries.push(item);
+        if(item.getState() === ItemState.Active){
+          this.allEntries.push(item);
+        }
       }
     });
     this.allEntries = this.sortItems(this.allEntries);
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // private Detect current context
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  detectCurrentContext = () => {
+    this.currentContextId = ''
+    for(let view of this.allViews){
+      if(view.getName() === this.myCurrentContextText){
+        this.currentContextId = view.getId()
+      }
+    }
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get current context id
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getCurrentContextId = (): string =>{
+    return this.currentContextId
+  }
+   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get current context
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getCurrentContext = (): MpgItem | undefined =>{
+    let currentContext: MpgItem | undefined = undefined
+    if(this.currentContextId !== ''){
+      currentContext = this.getItemById(this.currentContextId)
+    }
+    return currentContext
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // is current context set
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  isCurrentContextSet = (): boolean =>{
+    this.detectCurrentContext()
+    return !(this.currentContextId === '')
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // set all views
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -629,7 +684,24 @@ export default class MpgGraph {
       netPriority += tag.getNetPriority();
     });
     entry.setNetPriority(netPriority);
+    // add impact of currentConetxt
+    this.checkCurrentContextAndGetMatch(entry)
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // check current context and add match
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  checkCurrentContextAndGetMatch = (item: MpgItem)=>{
+    // get currentContext tags
+    const currentContext = this.getItemById(this.currentContextId)
+    if(currentContext !== undefined){
+      // scan item's tags
+      for(let tag of item.getTags()){
+        if(currentContext.hasTag(tag)){
+          item.setNetPriority(item.getNetPriority()+currentContext.getNetPriority())
+        }
+      }
+    }
+  }
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // remove tag rel from item
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1346,6 +1418,20 @@ export default class MpgGraph {
       this.invokeDataRefreshedFun();
     }
   };
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // park item
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////
+  parkItem = async (item: MpgItem) => {
+    try {
+      item.park()
+    } catch (err) {
+      this.mpgLogger.unexpectedError(err, "MpgGraph: parkItem: error:");
+    } finally {
+      this.setAllItemTypes();
+      this.reCalcNetPriority = true;
+      this.invokeDataRefreshedFun();
+    }
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // getAllCategoriesSorted
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1503,7 +1589,7 @@ export default class MpgGraph {
   // increment item priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   incrementItemPrioroty = (item: MpgItem) => {
-    item.setPriority(item.getPriority() + 1);
+    item.setPriority(item.getPriority() + 10);
     this.updateItem(item);
     this.invokeDataRefreshedFun();
   };
@@ -1511,7 +1597,7 @@ export default class MpgGraph {
   // decrement item priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   decrementItemPrioroty = (item: MpgItem) => {
-    item.setPriority(item.getPriority() - 1);
+    item.setPriority(item.getPriority() - 10);
     this.updateItem(item);
     this.invokeDataRefreshedFun();
   };
