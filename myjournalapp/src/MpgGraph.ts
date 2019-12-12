@@ -11,12 +11,21 @@ import { MpgInitialCategories, MpgCategoryType } from "./MpgInitialCategories";
 import { MpgDataProxy, MpgDataMode } from "./MpgDataProxy";
 import MpgItem, { ItemState } from "./MpgItem";
 import MpgRel from "./MpgRel";
+import MpgS3Proxy from "./MpgProxyS3"
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// define enum for sort by type
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export enum SortByType {
+  Age = "Age",
+  Priority = "Priority"
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // display mode mode
 ///////////////////////////////////////////////////////////////////////////////////////////////
 export enum MpgDisplayMode {
   Create = "Create",
-  Update = "Update"
+  Update = "Update",
+  View = "View",
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // list search state
@@ -51,7 +60,7 @@ export default class MpgGraph {
   private GraphFormatVersion = "2";
   private userDataTableExists = false;
   private allItems: MpgItem[] = [];
-  private viewCreateUpdateMode: MpgDisplayMode = MpgDisplayMode.Create;
+  private viewCreateUpdateMode: MpgDisplayMode = MpgDisplayMode.View;
   private currentItemId = "";
   private filteredAllItems: MpgItem[] = [];
   private currentCategoryId: string = "";
@@ -63,6 +72,7 @@ export default class MpgGraph {
   private listSearchState: ListSearchState = ListSearchState.List;
   readonly myCurrentContextText = 'My Current Context'
   private currentContextId: string = ''
+  private sortByType = SortByType.Priority
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,6 +103,14 @@ export default class MpgGraph {
       this.unexpectedError = true;
     }
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set sort by type
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setSortByType = (sortByType: SortByType)=>{
+    this.sortByType = sortByType
+    this.setAllItemTypes()
+    this.invokeDataRefreshedFun()
+  }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get root items (i.e. items without parents)
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -260,7 +278,8 @@ export default class MpgGraph {
       this.error,
       this.unexpectedError,
       this.getAllCategoriesSorted(),
-      this.getFilteredAllItemsSorted(),
+      this.getFilteredAllItemsSortedPriority(),
+      this.getFilteredAllItemsSortedAge(),
       this.currentCategoryId,
       this.currentItemId,
       this.viewCreateUpdateMode,
@@ -355,6 +374,18 @@ export default class MpgGraph {
       allTags
     );
   };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // export data to s3
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  exportData2S3 = async () => {
+    try{
+      const mpgS3 = new MpgS3Proxy(this.userName)
+      const response = await mpgS3.createBucket()
+      console.log("MpgGraph: exportDataS3: success. Response: ",response);
+    }catch(error){
+      console.log("MpgGraph: exportDataS3: error. Error: ",error);
+    }
+  }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // update item details
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -792,9 +823,22 @@ export default class MpgGraph {
   // sort items
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   sortItems = (entries: MpgItem[]): MpgItem[] => {
-    return entries.sort((item1, item2) => {
-      return item2.getNetPriority() - item1.getNetPriority();
-    });
+    let sortedItems: MpgItem[] = []
+    switch(this.sortByType){
+      case SortByType.Priority: {
+        sortedItems = entries.sort((item1, item2) => {
+          return item2.getNetPriority() - item1.getNetPriority();
+        });
+        break
+      }
+      case SortByType.Age: {
+        sortedItems = entries.sort((item1, item2) => {
+          return item2.getNetPriority() - item1.getNetPriority();
+        });
+        break
+      }
+    }
+  return sortedItems
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get entries with all tags or their children
@@ -1327,9 +1371,9 @@ export default class MpgGraph {
     }
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // getFilteredAllItems
+  // getFilteredAllItems sorted by priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  getFilteredAllItemsSorted = (): MpgItem[] => {
+  getFilteredAllItemsSortedPriority = (): MpgItem[] => {
     let foundItems: MpgItem[] = [];
     const currentCategory = this.getCategoryById(this.currentCategoryId);
     if (currentCategory !== undefined) {
@@ -1341,6 +1385,25 @@ export default class MpgGraph {
     }
     foundItems = foundItems.sort((item1, item2) => {
       return item2.getNetPriority() - item1.getNetPriority();
+    });
+    this.filteredAllItems = foundItems;
+    return foundItems;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // getFilteredAllItems sorted by Age
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getFilteredAllItemsSortedAge = (): MpgItem[] => {
+    let foundItems: MpgItem[] = [];
+    const currentCategory = this.getCategoryById(this.currentCategoryId);
+    if (currentCategory !== undefined) {
+      for (let item of this.allItems) {
+        if (item.getCategoryId() === this.currentCategoryId) {
+          foundItems.push(item);
+        }
+      }
+    }
+    foundItems = foundItems.sort((item1, item2) => {
+      return item2.getAgeInDays() - item1.getAgeInDays();
     });
     this.filteredAllItems = foundItems;
     return foundItems;
@@ -1757,6 +1820,7 @@ export default class MpgGraph {
         itemRecord.importance,
         itemRecord.id
       );
+      item.setCreationDate(new Date(parseInt(itemRecord.createdAt)))
       this.allItems.push(item);
       this.setFilteredAllItems();
     } else {

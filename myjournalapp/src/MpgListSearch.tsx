@@ -16,7 +16,7 @@ import {
   Icon,
   Typography
 } from "@material-ui/core";
-import MpgGraph, { MpgDisplayMode } from "./MpgGraph";
+import MpgGraph, { MpgDisplayMode, SortByType } from "./MpgGraph";
 import MpgLogger from "./MpgLogger";
 import MpgItem from "./MpgItem";
 import MpgTheme from "./MpgTheme";
@@ -54,6 +54,7 @@ interface ListISearchProps extends RouteComponentProps {
   setListSearchCategoryType: Function
   goToCurrentContext: Function
   isCurrentContextSet: Function
+  displayMode: MpgDisplayMode
 }
 interface IListSearchState {
   tagSearchText: string;
@@ -73,7 +74,8 @@ interface IListSearchState {
   listSearchState: ListSearchState;
   items2Show: MpgItem[];
   numberOfItems: number;
-  listSearchCategoryType: MpgCategoryType
+  listSearchCategoryType: MpgCategoryType,
+  sortByType: SortByType,
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MpgListSearch class
@@ -106,7 +108,8 @@ class MpgListSearchBase extends React.Component<
       listSearchState: props.listSearchState,
       items2Show: [],
       numberOfItems: 0,
-      listSearchCategoryType: props.listSearchCategoryType
+      listSearchCategoryType: props.listSearchCategoryType,
+      sortByType: SortByType.Priority
     };
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,7 +180,7 @@ class MpgListSearchBase extends React.Component<
               id: "searchIemType"
             }}
             style={{
-              fontSize: "21px",
+              fontSize: "17px",
               fontWeight: "bold",
               color: MpgTheme.palette.primary.contrastText
             }}
@@ -186,6 +189,22 @@ class MpgListSearchBase extends React.Component<
             <MenuItem value={"Tag"}>Tags</MenuItem>
             <MenuItem value={"View"}>Views</MenuItem>
           </Select>
+          {/* <Select
+            value={this.state.sortByType}
+            onChange={this.handleSortByTypeChange}
+            inputProps={{
+              name: "Sort by",
+              id: "sortByType"
+            }}
+            style={{
+              fontSize: "17px",
+              fontWeight: "bold",
+              color: MpgTheme.palette.primary.contrastText
+            }}
+          >
+            <MenuItem value={"Priority"}>Priority</MenuItem>
+            <MenuItem value={"Age"}>Age</MenuItem>
+          </Select> */}
           <Icon
             onClick={this.handleAddItem}
             style={{
@@ -215,12 +234,20 @@ class MpgListSearchBase extends React.Component<
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   handleSearchItemTypeChange = async (event: any) => {
     const type = event.target.value;
-    console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
+    // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
     // await this.props.mpgGraph.setCurrentItemType(type);
     // await this.setState({listSearchCategoryType: type})
     await this.props.setListSearchCategoryType(type)
     // await this.setState({currentItemType: type})
     // await this.setItems2Show()
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // handle sort by type change
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  handleSortByTypeChange = async (event: any) => {
+    const type = event.target.value;
+    // console.log('MpgListSearch: handleSearchItemTypeChange: type:',type);
+    await this.setState({sortByType: type})
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // goback
@@ -471,6 +498,7 @@ class MpgListSearchBase extends React.Component<
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           mpgGraph={this.props.mpgGraph}
           mpgLogger={this.props.mpgLogger}
+          displayMode={this.props.displayMode}
         />
       </div>
     );

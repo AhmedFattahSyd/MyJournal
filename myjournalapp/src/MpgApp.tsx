@@ -11,7 +11,8 @@ import MpgSignin from "./MpgSignin";
 import MpgGraph, {
   MpgDisplayMode as MpgCreateUpdateMode,
   ListSearchState,
-  CurrentCategoryType
+  CurrentCategoryType,
+  MpgDisplayMode
 } from "./MpgGraph";
 import MpgConfirmSignup from "./MpgConfirmSignup";
 import MpgLogger, { MpgLoggingMode } from "./MpgLogger";
@@ -96,14 +97,15 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   private mpgUser: MpgUser;
   private allCategories: MpgCategory[] = [];
   // private deskTop = true;
-  private filteredItems: MpgItem[] = [];
+  private filteredItemsPriority: MpgItem[] = [];
+  private filteredItemsAge: MpgItem[] = [];
   private currentCategoryId: string = "";
   private currentItemId: string = ""; // item being displayed or edited
-  private displayMode: MpgCreateUpdateMode = MpgCreateUpdateMode.Create;
+  private displayMode: MpgCreateUpdateMode = MpgCreateUpdateMode.View;
   private allTags: MpgItem[] = [];
   private allEntries: MpgItem[] = [];
   readonly primaryColor = blue[800];
-  private version = "Alpha 4 - released: 14 November 2019";
+  private version = "Alpha 5 - released: 12 Dec 2019";
   private aboutMessage = "My Journal - version " + this.version;
   private allViews: MpgItem[] = [];
   readonly maxCardWidth = 500;
@@ -196,7 +198,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 mpgGraph={this.mpgGraph}
                 mpgLogger={this.mpgLogger}
                 allCategories={this.allCategories}
-                filteredItems={this.filteredItems}
+                filteredItems={this.filteredItemsPriority}
                 currentItemId={this.currentItemId}
                 currentCategoryId={this.currentCategoryId}
                 createOrUpdateMode={this.displayMode}
@@ -224,7 +226,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 mpgGraph={this.mpgGraph}
                 mpgLogger={this.mpgLogger}
                 allCategories={this.allCategories}
-                filteredItems={this.filteredItems}
+                filteredItems={this.filteredItemsPriority}
                 currentItemId={this.currentItemId}
                 currentCategoryId={this.currentCategoryId}
                 createOrUpdateMode={this.displayMode}
@@ -258,7 +260,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 currentItemId={this.currentItemId}
                 allTags={this.allTags}
                 allEntries={this.allEntries}
-                filteredItems={this.filteredItems}
+                filteredItems={this.filteredItemsPriority}
                 allCategories={this.allCategories}
                 goToNewEntry={this.goToNewEntry}
                 cardWidth={this.state.cardWidth}
@@ -295,6 +297,7 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
                 setListSearchCategoryType={this.setListSearchCategoryType}
                 goToCurrentContext={this.goToCurrentContext}
                 isCurrentContextSet={this.isCurrentContextSet}
+                displayMode={this.displayMode}
               />
             )}
           />
@@ -722,11 +725,11 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
             </ListItemIcon>
             <ListItemText primary="Reload data from cloud" />
           </ListItem>
-          <ListItem button onClick={this.exportAllData}>
+          <ListItem button onClick={this.exportData2S3}>
             <ListItemIcon>
               <Icon>cloud_download</Icon>
             </ListItemIcon>
-            <ListItemText primary="Export data" />
+            <ListItemText primary="Export data to S3" />
           </ListItem>
           <Divider />
           <ListItem button onClick={this.handleSignout}>
@@ -742,13 +745,12 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // export all data
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  exportAllData = async () => {
+  exportData2S3 = async () => {
     try {
-      // this.download('test.json',"{'text': 'My Personal Graph'}")
-      this.showMessage("Sorry, function has not been implemented yet");
+      this.mpgGraph.exportData2S3()
     } catch (err) {
       this.mpgLogger.unexpectedError(
-        "MpgApp: exportAllData: unable to download file. Error",
+        "MpgApp: exportData2S3: error. ",
         err
       );
     }
@@ -815,7 +817,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   updateItem = async (item: MpgItem) => {
     if (this.state.userSignedIn) {
       await this.setState({ currentItem: item });
-      await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Update);
+      // await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Update);
+      this.displayMode = MpgCreateUpdateMode.Update
       await this.props.history.push("/ItemDetails");
     } else {
       this.showMessage("Please signin first");
@@ -829,7 +832,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const entryCategoryId = this.mpgGraph.getEntryCategoryId();
       if (entryCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(entryCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        // await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        this.displayMode = MpgDisplayMode.Create
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -848,7 +852,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const viewCategoryId = this.mpgGraph.getViewCategoryId();
       if (viewCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(viewCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        // await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        this.displayMode = MpgDisplayMode.Create
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -867,7 +872,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
       const tagCategoryId = this.mpgGraph.getTagCategoryId();
       if (tagCategoryId !== undefined) {
         await this.mpgGraph.setCurrentCategoryId(tagCategoryId);
-        await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        // await this.mpgGraph.setDisplayMode(MpgCreateUpdateMode.Create);
+        this.displayMode = MpgDisplayMode.Create
         await this.props.history.push("/ItemDetails");
       } else {
         this.mpgLogger.unexpectedError(
@@ -997,7 +1003,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
     error: MpgError,
     unexpectedError: boolean,
     allCategories: MpgCategory[],
-    filteredAllItems: MpgItem[],
+    filteredAllItemsPriority: MpgItem[],
+    filteredAllItemsAge: MpgItem[],
     currentCategoryId: string,
     currentItemId: string,
     displayMode: MpgCreateUpdateMode,
@@ -1010,7 +1017,8 @@ class MpgAppBase extends React.Component<IMpgAppProps, IMpgAppState> {
   ) => {
     // console.log('MpgApp: dataRefreshed: currentItemType: ',currentItemType);
     this.allCategories = allCategories;
-    this.filteredItems = filteredAllItems;
+    this.filteredItemsPriority = filteredAllItemsPriority;
+    this.filteredItemsAge = filteredAllItemsAge;
     this.currentCategoryId = currentCategoryId;
     this.currentItemId = currentItemId;
     this.displayMode = displayMode;

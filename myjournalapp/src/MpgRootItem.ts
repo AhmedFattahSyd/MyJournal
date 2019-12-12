@@ -11,7 +11,7 @@ export default class MpgRootItem {
     private id: string;
     private class: MpgDataClasses
     private name: string 
-    private priority: number
+    protected priority: number
     // MpgData can be item category or tag
     // private children: MpgRootItem[]
     // move tags down the heirarchy to item???

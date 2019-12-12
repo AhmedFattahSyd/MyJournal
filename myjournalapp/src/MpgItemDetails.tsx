@@ -394,6 +394,7 @@ class MpgItemDetailsBase extends React.Component<
           toggleSidebarVisibility={this.props.toggleSidebarVisibility}
           mpgGraph={this.props.mpgGraph}
           mpgLogger={this.props.mpgLogger}
+          displayMode={this.props.displayMode}
         />
       </div>
     );
@@ -1738,6 +1739,8 @@ class MpgItemDetailsBase extends React.Component<
     //   itemsWithTags: [],
     // })
     // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: state:`,this.state)
+    let existingParentTags: MpgItem[] = [];
+    let existingChildTags: MpgItem[] = [];
     if (this.state.displayMode === MpgDisplayMode.Update) {
       const item = this.props.mpgGraph.getItemById(this.state.currentItemId);
       if (item !== undefined) {
@@ -1749,8 +1752,6 @@ class MpgItemDetailsBase extends React.Component<
         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: relatedItems:`, relatedItems)
         // this.props.mpgLogger.debug(`MpgItemDetails: setCreateOrUpdateMode: item's tags: ${item.getTags()}`)
         // load tags
-        let existingParentTags: MpgItem[] = [];
-        let existingChildTags: MpgItem[] = [];
         if (this.props.mpgGraph.isCurrentCategoryTag) {
           existingParentTags = item.getParents();
           existingChildTags = item.getChildren();
@@ -1785,7 +1786,8 @@ class MpgItemDetailsBase extends React.Component<
         itemsWithTags: [],
         showRelatedItems: this.showRelatedItems(),
         screenTitle: "New " + this.props.mpgGraph.getCurrentCateoryName(),
-        existingParentTags: []
+        existingParentTags: [],
+        existingChildTags: []
       });
     }
   };

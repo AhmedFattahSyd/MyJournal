@@ -10,7 +10,7 @@ import MpgRel from "./MpgRel";
 ///////////////////////////////////////////////////////////////////////////////////////////////
 export enum ItemState {
   Active = "Active",
-  Parked = "Parked",
+  Parked = "Parked"
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Mpg Item class
@@ -21,10 +21,11 @@ export default class MpgItem extends MpgRootItem {
   private parentRels: MpgRel[];
   private childRels: MpgRel[];
   private entryRels: MpgRel[];
-  private netPriority = 0
-  private state = ItemState.Active
-  private parkUntil: Date | number = 0
-  readonly parkingMinutes = 30
+  private netPriority = 0;
+  private state = ItemState.Active;
+  private parkUntil: Date | number = 0;
+  private creationDate: Date = new Date();
+  readonly parkingMinutes = 30;
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // constructor
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,53 +43,224 @@ export default class MpgItem extends MpgRootItem {
     this.entryRels = [];
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get creation date
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getCreationDate = (): Date => {
+    return this.creationDate;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // set creation date
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  setCreationDate = (creationDate: Date) => {
+    this.creationDate = creationDate;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get age OLD
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getAgeOLD = (): string => {
+    const diff = Math.floor(new Date().getTime() - this.creationDate.getTime());
+    const seconds = Math.floor(diff/1000)
+    const minutes = Math.floor(seconds/60)
+    const hours =  Math.floor(minutes/60)
+    const days = Math.floor(hours/24)
+    const months = Math.floor(days/31);
+    const years = Math.floor(months/12);
+  
+    let age = "";
+    if (minutes < 60) {
+      age += minutes + " minutes";
+    } else {
+      if (hours < 24) {
+        age += days + " days ";
+      } else {
+        if (months < 12) {
+          age += months + " months ";
+        } else {
+          age += years + " years";
+        }
+      }
+    }
+    return age;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get age formatted
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getAge = (): string => {
+    var now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    var yearNow = now.getFullYear();
+    var monthNow = now.getMonth();
+    var dateNow = now.getDate();
+
+    
+    let creationDate = this.creationDate
+
+    var yearDob = creationDate.getFullYear();
+    var monthDob = creationDate.getMonth();
+    var dateDob = creationDate.getDate();
+    
+    var ageString = "";
+    var yearString = "";
+    var monthString = "";
+    var dayString = "";
+
+    let yearAge = yearNow - yearDob;
+
+    if (monthNow >= monthDob) var monthAge = monthNow - monthDob;
+    else {
+      yearAge--;
+      var monthAge = 12 + monthNow - monthDob;
+    }
+
+    if (dateNow >= dateDob) var dateAge = dateNow - dateDob;
+    else {
+      monthAge--;
+      var dateAge = 31 + dateNow - dateDob;
+
+      if (monthAge < 0) {
+        monthAge = 11;
+        yearAge--;
+      }
+    }
+
+    const age = {
+      years: yearAge,
+      months: monthAge,
+      days: dateAge
+    };
+
+    if (age.years > 1) yearString = " years";
+    else yearString = " year";
+    if (age.months > 1) monthString = " months";
+    else monthString = " month";
+    if (age.days > 1) dayString = " days";
+    else dayString = " day";
+
+    if (age.years > 0 && age.months > 0 && age.days > 0)
+      ageString =
+        age.years +
+        yearString +
+        ", " +
+        age.months +
+        monthString +
+        ", and " +
+        age.days +
+        dayString +
+        " old.";
+    else if (age.years == 0 && age.months == 0 && age.days >= 0)
+      ageString = "" + age.days + dayString + "";
+    else if (age.years > 0 && age.months == 0 && age.days == 0)
+      ageString = age.years + yearString + "";
+    else if (age.years > 0 && age.months > 0 && age.days == 0)
+      ageString =
+        age.years + yearString + ", " + age.months + monthString + "";
+    else if (age.years == 0 && age.months > 0 && age.days > 0)
+      ageString =
+        age.months + monthString + ", " + age.days + dayString + "";
+    else if (age.years > 0 && age.months == 0 && age.days > 0)
+      ageString =
+        age.years + yearString + ", " + age.days + dayString + "";
+    else if (age.years == 0 && age.months > 0 && age.days == 0)
+      ageString = age.months + monthString + "";
+    else ageString = "";
+
+    return ageString;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get age in days
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getAgeInDays = (): number=>{
+    const diff = Math.floor(new Date().getTime() - this.creationDate.getTime());
+    const day = 1000 * 60 * 60 * 24
+    const ageInDays = Math.ceil(diff/day)
+    return ageInDays
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // get formated creation date
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  getFormattedCreationDate = (): string => {
+    let formattedCrationDate = "";
+
+    var monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ];
+    const date = this.creationDate;
+    var day = date.getDate();
+    var monthIndex = date.getMonth();
+    var year = date.getFullYear();
+
+    formattedCrationDate = day + " " + monthNames[monthIndex] + " " + year;
+    return formattedCrationDate;
+  };
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // getState
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getState = () => {
-      // check date and change parked state if time is out
-      if(this.state === ItemState.Parked){
-        const now = new Date()
-        if(this.parkUntil < now){
-          this.state = ItemState.Active
-        }
+    // check date and change parked state if time is out
+    if (this.state === ItemState.Parked) {
+      const now = new Date();
+      if (this.parkUntil < now) {
+        this.state = ItemState.Active;
       }
-      return this.state
-  }
+    }
+    return this.state;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set state
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  setState = (newState: ItemState)=>{
-      this.state = newState
-      // if state is Parked, set partUntil to one hour form now
-      if(newState === ItemState.Parked){
-        this.parkUntil = new Date()
-        this.parkUntil.setMinutes(this.parkUntil.getMinutes() + this.parkingMinutes)
-      }
-  }
+  setState = (newState: ItemState) => {
+    this.state = newState;
+    // if state is Parked, set partUntil to one hour form now
+    if (newState === ItemState.Parked) {
+      this.parkUntil = new Date();
+      this.parkUntil.setMinutes(
+        this.parkUntil.getMinutes() + this.parkingMinutes
+      );
+    }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // park item for n minutes
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  park = (mins: number = this.parkingMinutes)=>{
-    this.setState(ItemState.Parked)
-  }
+  park = (mins: number = this.parkingMinutes) => {
+    this.setState(ItemState.Parked);
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get parking due time
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getParkUntil = () => {
-    return this.parkUntil
-  }
+    return this.parkUntil;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set net priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  setNetPriority = (netPriority: number)=>{
-    this.netPriority = netPriority
-  }
+  setNetPriority = (netPriority: number) => {
+    this.netPriority = netPriority;
+  };
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // get priority
+  // add age to item's priority
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  // getPriority = (): number => {
+  //   return this.priority + this.getAgeInDays()
+  // }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // get net priority   
+  // get net priority
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   getNetPriority = (): number => {
-    return this.netPriority
-  }
+    return this.netPriority;
+  };
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   // get categoryId
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,41 +337,41 @@ export default class MpgItem extends MpgRootItem {
   };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // isParent
-  // check if the tag in the argumnet is a parent of this tag 
+  // check if the tag in the argumnet is a parent of this tag
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  isParent = (item: MpgItem): boolean =>{
-    let isParent = false
-    if(this.getParents().includes(item)){
-      isParent = true
+  isParent = (item: MpgItem): boolean => {
+    let isParent = false;
+    if (this.getParents().includes(item)) {
+      isParent = true;
     }
-    return isParent
-  }
+    return isParent;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // isAncestor
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   isAncestor = (item: MpgItem): boolean => {
-    let isAncestor = false
-    let ancestors = this.getAncestors([])
-    if(ancestors.includes(item)){
-      isAncestor = true
+    let isAncestor = false;
+    let ancestors = this.getAncestors([]);
+    if (ancestors.includes(item)) {
+      isAncestor = true;
     }
-    return isAncestor
-  }
+    return isAncestor;
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // areParents
-  // check if the tags in the argumnet are parents of this tag 
+  // check if the tags in the argumnet are parents of this tag
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   areParents = (tags: MpgItem[]): boolean => {
-    let areParent = false
-    for(let aTag of tags){
-      if(!this.isParent(aTag)){
-        areParent = false
-        break
+    let areParent = false;
+    for (let aTag of tags) {
+      if (!this.isParent(aTag)) {
+        areParent = false;
+        break;
       }
-      areParent = true
+      areParent = true;
     }
-    return areParent
-  }
+    return areParent;
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get children
   // returns direct children only (not descendents)
@@ -381,26 +553,28 @@ export default class MpgItem extends MpgRootItem {
       }
     }
     return hasTag;
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // remove tag
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  removeTag = (tag: MpgItem)=>{
-    const tagRel = this.getTagRel4Tag(tag)
-    if(tagRel !== undefined){
-      this.removeTagRel(tagRel)
-    }else{
-      throw new Error('MpgItem: removeTag: tagRel undefined for tag with id:'+tag.getId())
+  removeTag = (tag: MpgItem) => {
+    const tagRel = this.getTagRel4Tag(tag);
+    if (tagRel !== undefined) {
+      this.removeTagRel(tagRel);
+    } else {
+      throw new Error(
+        "MpgItem: removeTag: tagRel undefined for tag with id:" + tag.getId()
+      );
     }
-  }
+  };
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // remove tags  
+  // remove tags
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  removeTags = (tags: MpgItem[])=>{
-    tags.forEach(tag=>{
-      this.removeTag(tag)
-    })
-  }
+  removeTags = (tags: MpgItem[]) => {
+    tags.forEach(tag => {
+      this.removeTag(tag);
+    });
+  };
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // get tags
   ///////////////////////////////////////////////////////////////////////////////////////////////

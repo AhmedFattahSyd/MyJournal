@@ -288,7 +288,8 @@ async function executeRequest(request: MpgData.MpgDataRequest) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // lambda entry point
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-exports.handler = async (requestData: any) => {
+//exports.handler = async (requestData: any) => {
+export const handler = async (requestData: any) => {
     try {
         console.log('MpgDataServer: request:', requestData);
         let request = requestData as MpgData.MpgDataRequest

@@ -231,10 +231,11 @@ class MpgHomeBase extends React.Component<IHomeProps, IHomeState> {
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // handler add item  
   ///////////////////////////////////////////////////////////////////////////////////////////////
-  handleAddItem = async (event: React.MouseEvent, id: string) => {
+  handleAddItem = async (event: React.MouseEvent<HTMLSpanElement>, id: string) => {
     await this.props.mpgGraph.setCurrentCategoryId(id);
     await this.props.mpgGraph.setDisplayMode(MpgDisplayMode.Create);
     await this.props.history.push("/ItemDetails");
+    // this.props.goToNewEntry(event)
   };
    ///////////////////////////////////////////////////////////////////////////////////////////////
   // handle search category icon click
